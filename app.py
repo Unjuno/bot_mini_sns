@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+import logging
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,6 +46,7 @@ def load_config():
 
 config = load_config()
 app = Flask(__name__)
+app.logger.setLevel(logging.INFO)
 line_bot_api = LineBotApi(os.environ["ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 
@@ -235,6 +237,9 @@ def callback():
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
+    except Exception:
+        app.logger.exception("Webhook processing failed")
+        abort(500)
     return "OK"
 
 
@@ -264,7 +269,7 @@ def handle_text(event):
     if text in {"使い方", "ヘルプ"}:
         reply(event, "投稿はそのまま送信してください。新着投稿を見るときは「新着」と送信してください。")
         return
-    if text in {"新着", "タイムライン"}:
+    if text.lower() in {"新着", "タイムライン", "最新", "timeline", "latest", "new"}:
         fetch_posts(event)
         return
     user = ensure_active(event)
@@ -343,6 +348,8 @@ def handle_sticker(event):
 def fetch_posts(event):
     user = ensure_active(event)
     if not user or not feature_enabled("post_fetch"):
+        if user and not feature_enabled("post_fetch"):
+            reply(event, "タイムライン機能は現在利用できません。")
         return
     limit = int(config["timeline"].get("posts_per_request", 10))
     include_author = bool(config["timeline"].get("include_author_posts", True))
