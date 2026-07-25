@@ -174,7 +174,8 @@ python -m unittest discover -s tests -v
 ├── docs/
 │   ├── 仕様書.md       # Canonical product specification (Japanese)
 │   ├── configuration.md # Configuration guide (English)
-│   └── large-community.md # Production scaling plan
+│   ├── large-community.md # Production scaling plan
+│   └── railway.md       # Railway deployment guide
 ├── uploaded_media/     # Uploaded media files (git-ignored)
 └── sns_bot.db          # SQLite database (git-ignored)
 ```
