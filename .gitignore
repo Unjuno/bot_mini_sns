@@ -1,0 +1,6 @@
+.env
+.venv/
+uploaded_media/
+uploaded_images/
+__pycache__/
+sns_bot.db

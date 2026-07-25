@@ -1,0 +1,16 @@
+{
+  "features": {
+    "registration": true,
+    "text_post": true,
+    "post_fetch": true
+  },
+  "timeline": {
+    "include_author_posts": true,
+    "posts_per_request": 5,
+    "mark_as_read": true
+  },
+  "media": {
+    "enabled_types": ["image", "audio", "video", "file", "location", "sticker"],
+    "retention_days": 30
+  }
+}
