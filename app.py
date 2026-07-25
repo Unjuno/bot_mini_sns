@@ -158,6 +158,13 @@ def get_user(event):
             "SELECT * FROM users WHERE line_user_id = ?", (line_user_id,)
         ).fetchone()
         if user:
+            db.execute(
+                "UPDATE users SET updated_at=? WHERE line_user_id=?",
+                (now(), line_user_id),
+            )
+            user = db.execute(
+                "SELECT * FROM users WHERE line_user_id = ?", (line_user_id,)
+            ).fetchone()
             return user
         if not feature_enabled("registration"):
             return None
@@ -219,6 +226,19 @@ def reply(event, text):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text))
 
 
+def is_new_user(user):
+    return user["created_at"] == user["updated_at"]
+
+
+def usage_text():
+    return (
+        "使い方:\n"
+        "・テキスト、画像、音声、動画、ファイル、位置情報、スタンプを投稿できます。\n"
+        "・他の人の投稿を見るときは「新着」と送信してください。\n"
+        "・使える機能はコミュニティの設定で変わります。"
+    )
+
+
 @app.route("/")
 def index():
     return "LINE mini SNS is running"
@@ -257,7 +277,7 @@ def handle_text(event):
     if text == "登録":
         user = get_user(event)
         if user:
-            reply(event, "登録されています。テキストや対応しているコンテンツを投稿できます。")
+            reply(event, "登録されています。\n\n" + usage_text())
         else:
             reply(event, "現在、新規登録を受け付けていません。")
         return
@@ -282,7 +302,10 @@ def handle_text(event):
         reply(event, "空の投稿はできません。")
         return
     save_post(user["id"], "text", text)
-    reply(event, "投稿しました。")
+    response = "投稿しました。"
+    if is_new_user(user):
+        response += "\n\n" + usage_text()
+    reply(event, response)
 
 
 def handle_media(event, message, media_type, extension, mime_type):
@@ -295,7 +318,10 @@ def handle_media(event, message, media_type, extension, mime_type):
     filename = save_line_content(message, media_type, extension)
     save_post(user["id"], media_type, media_url=media_url(filename), mime_type=mime_type,
               duration_ms=getattr(message, "duration", None))
-    reply(event, f"{media_type}を投稿しました。")
+    response = f"{media_type}を投稿しました。"
+    if is_new_user(user):
+        response += "\n\n" + usage_text()
+    reply(event, response)
 
 
 @handler.add(MessageEvent, message=ImageMessage)
@@ -329,7 +355,10 @@ def handle_location(event):
     save_post(user["id"], "location", event.message.title,
               address=event.message.address, latitude=event.message.latitude,
               longitude=event.message.longitude)
-    reply(event, "位置情報を投稿しました。")
+    response = "位置情報を投稿しました。"
+    if is_new_user(user):
+        response += "\n\n" + usage_text()
+    reply(event, response)
 
 
 @handler.add(MessageEvent, message=StickerMessage)
@@ -342,7 +371,10 @@ def handle_sticker(event):
         return
     save_post(user["id"], "sticker", package_id=event.message.package_id,
               sticker_id=event.message.sticker_id)
-    reply(event, "スタンプを投稿しました。")
+    response = "スタンプを投稿しました。"
+    if is_new_user(user):
+        response += "\n\n" + usage_text()
+    reply(event, response)
 
 
 def fetch_posts(event):
