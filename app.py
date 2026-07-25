@@ -60,6 +60,12 @@ def db_connection():
 
 def init_db():
     with db_connection() as db:
+        existing_posts = {
+            row["name"] for row in db.execute("PRAGMA table_info(posts)")
+        }
+        if existing_posts and "type" not in existing_posts:
+            db.execute("ALTER TABLE users RENAME TO users_legacy")
+            db.execute("ALTER TABLE posts RENAME TO posts_legacy")
         db.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -100,6 +106,30 @@ def init_db():
         for column in ("package_id", "sticker_id"):
             if column not in columns:
                 db.execute(f"ALTER TABLE posts ADD COLUMN {column} TEXT")
+        if existing_posts and "type" not in existing_posts:
+            legacy_users = db.execute("SELECT user_id, display_name, registered_at FROM users_legacy").fetchall()
+            for legacy_user in legacy_users:
+                timestamp = legacy_user["registered_at"] or now()
+                db.execute(
+                    "INSERT OR IGNORE INTO users(line_user_id, display_name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                    (legacy_user["user_id"], legacy_user["display_name"], timestamp, timestamp),
+                )
+            legacy_posts = db.execute(
+                "SELECT user_id, text, image_path, created_at, package_id, sticker_id FROM posts_legacy"
+            ).fetchall()
+            for legacy_post in legacy_posts:
+                user = db.execute(
+                    "SELECT id FROM users WHERE line_user_id=?", (legacy_post["user_id"],)
+                ).fetchone()
+                if not user:
+                    continue
+                post_type = "image" if legacy_post["image_path"] else "text"
+                db.execute(
+                    """INSERT INTO posts(user_id, type, text, media_url, package_id,
+                       sticker_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (user["id"], post_type, legacy_post["text"], legacy_post["image_path"],
+                     legacy_post["package_id"], legacy_post["sticker_id"], legacy_post["created_at"] or now()),
+                )
 
 
 init_db()
