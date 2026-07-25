@@ -46,7 +46,7 @@ The default sample is [config.example.json](../config.example.json). Copy it to 
 | --- | --- |
 | `include_author_posts` | Includes the current user's own posts in their timeline. |
 | `posts_per_request` | Maximum number of posts returned for one request. |
-| `mark_as_read` | Records posts as read after they are returned. |
+| `mode` | Timeline mode. The MVP uses `recent` to return the latest posts. |
 
 ### `media`
 

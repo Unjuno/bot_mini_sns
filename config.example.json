@@ -7,7 +7,7 @@
   "timeline": {
     "include_author_posts": true,
     "posts_per_request": 5,
-    "mark_as_read": true
+    "mode": "recent"
   },
   "media": {
     "enabled_types": ["image", "audio", "video", "file", "location", "sticker"],

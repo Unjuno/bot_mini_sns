@@ -22,7 +22,7 @@ Uses Pull-based timeline retrieval with `reply_message`; this avoids automatic P
 | Sticker | ✅ | `StickerSendMessage` |
 
 - **Registration**: Users join by following the bot or sending "登録"
-- **Unread tracking**: Each user sees only new posts since their last fetch
+- **Recent timeline**: Users can fetch the latest posts on demand
 - **Config-driven**: Feature flags in `config.json` — disable media types, toggle registration
 - **Config-driven**: Feature flags in `config.json` — disable media types, toggle registration
 
@@ -156,7 +156,8 @@ python -m unittest discover -s tests -v
 | `features.text_post` | bool | `true` | Allow text posts |
 | `features.post_fetch` | bool | `true` | Enable "新着" timeline fetching |
 | `timeline.include_author_posts` | bool | `true` | Include own posts in timeline |
-| `timeline.posts_per_request` | int | `5` | Max posts returned per fetch |
+| `timeline.posts_per_request` | int | `5` | Max recent posts returned per fetch |
+| `timeline.mode` | string | `recent` | Timeline retrieval mode |
 | `media.enabled_types` | array | `[...]` | Allowed media types |
 | `media.retention_days` | int | `30` | Media file retention (not yet enforced) |
 

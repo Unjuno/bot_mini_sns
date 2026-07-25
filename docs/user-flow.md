@@ -16,7 +16,7 @@ flowchart TD
     F -- File --> I[Save file and post record]
     F -- Location --> J[Save location post]
     F -- Sticker --> K[Save sticker post]
-    F -- New posts command --> L[Fetch unread posts]
+    F -- New posts command --> L[Fetch recent posts]
     F -- Help --> M[Show usage]
     F -- Leave --> N[Mark user as deleted]
 
@@ -28,10 +28,9 @@ flowchart TD
     O -- Yes --> P[Reply: posted + usage guide]
     O -- No --> Q[Reply: posted]
 
-    L --> R{Unread posts exist?}
+    L --> R{Recent posts exist?}
     R -- Yes --> S[Reply with posts]
     R -- No --> T[Reply: no new posts]
-    S --> U[Mark posts as read]
 ```
 
 ## First-time user flow
@@ -62,9 +61,8 @@ sequenceDiagram
 
     U->>L: Send "新着" / "タイムライン"
     L->>B: Webhook event
-    B->>DB: Find unread published posts
+    B->>DB: Find recent published posts
     DB-->>B: Return posts
-    B->>DB: Record post reads
     B-->>L: Reply with up to configured number of posts
     L-->>U: Display other users' posts
 ```

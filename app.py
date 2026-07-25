@@ -387,16 +387,13 @@ def fetch_posts(event):
     include_author = bool(config["timeline"].get("include_author_posts", True))
     with db_connection() as db:
         condition = "" if include_author else "AND p.user_id != ?"
-        params = [user["id"]] if include_author else [user["id"], user["id"]]
+        params = [] if include_author else [user["id"]]
         posts = db.execute(
-            f"""SELECT p.* FROM posts p LEFT JOIN post_reads r
-                ON r.post_id=p.id AND r.user_id=?
-                WHERE p.status='published' AND r.id IS NULL {condition}
-                ORDER BY p.created_at ASC LIMIT ?""",
+            f"""SELECT p.* FROM posts p
+                WHERE p.status='published' {condition}
+                ORDER BY p.created_at DESC, p.id DESC LIMIT ?""",
             params + [limit],
         ).fetchall()
-        for post in posts:
-            db.execute("INSERT OR IGNORE INTO post_reads(post_id,user_id,read_at) VALUES(?,?,?)", (post["id"], user["id"], now()))
     if not posts:
         reply(event, "新しい投稿はありません。")
         return
