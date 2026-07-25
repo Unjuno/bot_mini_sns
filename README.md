@@ -111,6 +111,12 @@ Edit `config.json` to enable/disable features:
 python app.py
 ```
 
+### Run tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 ### 6. Set up LINE Webhook
 
 1. Deploy or use [ngrok](https://ngrok.com/) for local HTTPS: `ngrok http 5000`
