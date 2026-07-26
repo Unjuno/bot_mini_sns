@@ -234,9 +234,13 @@ def reply_same_type(event, posts):
     messages = []
     post_type = posts[0]["type"] if posts else None
     if post_type == "file":
-        urls = [post["media_url"] for post in posts[:5] if post["media_url"]]
-        if urls:
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="\n".join(urls)[:5000]))
+        messages = [
+            TextSendMessage(text=post["media_url"][:5000])
+            for post in posts[:5]
+            if post["media_url"]
+        ]
+        if messages:
+            line_bot_api.reply_message(event.reply_token, messages)
         else:
             reply(event, "返信できるコンテンツがありません。")
         return
@@ -325,8 +329,15 @@ def handle_text(event):
     first_post = not has_posts(user["id"])
     save_post(user["id"], "text", text)
     posts = recent_posts(user["id"], "text")
-    text_values = [post["text"] for post in posts if post["text"]]
-    reply(event, "\n\n".join(text_values[:5]) or "返信できる文章がありません。")
+    messages = [
+        TextSendMessage(text=post["text"][:5000])
+        for post in posts[:5]
+        if post["text"]
+    ]
+    if messages:
+        line_bot_api.reply_message(event.reply_token, messages)
+    else:
+        reply(event, "返信できる文章がありません。")
 
 
 def handle_media(event, message, media_type, extension, mime_type):
