@@ -1,4 +1,4 @@
-# ADKome
+# bot_mini_sns
 
 大手チャットサービスと共存する、対話型マイクロSNSの基盤です。
 現在はPython版でLINEだけを入口として、文章・写真・音声・動画・ファイルを保存し、LINEの上限まで同種コンテンツを返信します。その他のプラットフォームは将来拡張です。
@@ -23,7 +23,7 @@ LINE（現行実装）
    投稿保存・タイムライン返信
 ```
 
-将来追加する機能は、返信直前のブラックボックス拡張である翻訳と広告だけです。
+翻訳と広告は現在のMVPおよび直近の実装対象に含めません。
 
 ## 開発
 
@@ -57,5 +57,5 @@ lean formal\FixedFlow.lean
 - [docs/user-flow.md](docs/user-flow.md)：固定ユーザーフロー
 - [docs/architecture.md](docs/architecture.md)：共通基盤と拡張境界
 - [docs/openapi.yaml](docs/openapi.yaml)：共通HTTP/JSONインターフェース
-- [docs/future-vision.md](docs/future-vision.md)：翻訳・広告の将来構想
+- [docs/future-vision.md](docs/future-vision.md)：保留中の将来アイデア
 - [formal/FixedFlow.lean](formal/FixedFlow.lean)：Lean 4形式証明

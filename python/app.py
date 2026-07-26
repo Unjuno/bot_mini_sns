@@ -219,6 +219,18 @@ def reply(event, text):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text))
 
 
+def reply_error(event, message="処理中にエラーが発生しました。もう一度お試しください。"):
+    try:
+        reply(event, message)
+    except Exception:
+        app.logger.exception("Failed to send error reply")
+
+
+def handle_processing_error(event, error, context):
+    app.logger.exception("%s failed: %s", context, error)
+    reply_error(event)
+
+
 def recent_posts(user_id, post_type, limit=5):
     with db_connection() as db:
         return db.execute(
@@ -316,44 +328,48 @@ def ensure_active(event):
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text(event):
-    text = event.message.text.strip()
-    user = ensure_active(event)
-    if not user:
-        return
-    if not feature_enabled("text_post"):
-        reply(event, "テキスト投稿は現在利用できません。")
-        return
-    if not text:
-        reply(event, "空の投稿はできません。")
-        return
-    first_post = not has_posts(user["id"])
-    save_post(user["id"], "text", text)
-    posts = recent_posts(user["id"], "text")
-    messages = [
-        TextSendMessage(text=post["text"][:5000])
-        for post in posts[:5]
-        if post["text"]
-    ]
-    if messages:
-        line_bot_api.reply_message(event.reply_token, messages)
-    else:
-        reply(event, "返信できる文章がありません。")
+    try:
+        text = event.message.text.strip()
+        user = ensure_active(event)
+        if not user:
+            return
+        if not feature_enabled("text_post"):
+            reply(event, "テキスト投稿は現在利用できません。")
+            return
+        if not text:
+            reply(event, "空の投稿はできません。")
+            return
+        save_post(user["id"], "text", text)
+        posts = recent_posts(user["id"], "text")
+        messages = [
+            TextSendMessage(text=post["text"][:5000])
+            for post in posts[:5]
+            if post["text"]
+        ]
+        if messages:
+            line_bot_api.reply_message(event.reply_token, messages)
+        else:
+            reply(event, "返信できる文章がありません。")
+    except Exception as error:
+        handle_processing_error(event, error, "text message")
 
 
 def handle_media(event, message, media_type, extension, mime_type):
-    user = ensure_active(event)
-    if not user:
-        return
-    if not media_type_enabled(media_type):
-        reply(event, f"{media_type}の投稿は現在利用できません。")
-        return
-    first_post = not has_posts(user["id"])
-    filename = save_line_content(message, media_type, extension)
-    saved_media_url = media_url(filename)
-    duration_ms = getattr(message, "duration", None)
-    save_post(user["id"], media_type, media_url=saved_media_url, mime_type=mime_type,
-              duration_ms=duration_ms)
-    reply_same_type(event, recent_posts(user["id"], media_type))
+    try:
+        user = ensure_active(event)
+        if not user:
+            return
+        if not media_type_enabled(media_type):
+            reply(event, f"{media_type}の投稿は現在利用できません。")
+            return
+        filename = save_line_content(message, media_type, extension)
+        saved_media_url = media_url(filename)
+        duration_ms = getattr(message, "duration", None)
+        save_post(user["id"], media_type, media_url=saved_media_url, mime_type=mime_type,
+                  duration_ms=duration_ms)
+        reply_same_type(event, recent_posts(user["id"], media_type))
+    except Exception as error:
+        handle_processing_error(event, error, f"{media_type} message")
 
 
 @handler.add(MessageEvent, message=ImageMessage)
