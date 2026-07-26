@@ -272,9 +272,7 @@ def reply_same_type(event, posts):
 
 def usage_text():
     return (
-        "使い方:\n"
-        "・文章、写真、音声、動画、ファイルを送ると投稿として保存されます。\n"
-        "・保存後、最近の投稿が返信されます。"
+        "文章、写真、音声、動画、ファイルを送信できます。"
     )
 
 
@@ -361,6 +359,9 @@ def handle_media(event, message, media_type, extension, mime_type):
             return
         if not media_type_enabled(media_type):
             reply(event, f"{media_type}の投稿は現在利用できません。")
+            return
+        if not os.getenv("MEDIA_BASE_URL", "").strip():
+            reply(event, "メディア返信の設定が完了していません。管理者に連絡してください。")
             return
         filename = save_line_content(message, media_type, extension)
         saved_media_url = media_url(filename)
