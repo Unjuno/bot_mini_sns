@@ -16,6 +16,7 @@ from linebot.models import (
     ImageMessage,
     MessageEvent,
     TextMessage,
+    TextSendMessage,
     VideoMessage,
 )
 

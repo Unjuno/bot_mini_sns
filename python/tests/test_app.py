@@ -93,6 +93,19 @@ class MiniSNSAppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("LINE mini SNS", response.get_data(as_text=True))
 
+    def test_reply_builds_text_message(self):
+        event = type("Event", (), {"reply_token": "reply-token"})()
+        original_reply_message = app.line_bot_api.reply_message
+        calls = []
+        app.line_bot_api.reply_message = lambda token, message: calls.append((token, message))
+        try:
+            app.reply(event, "テスト返信")
+        finally:
+            app.line_bot_api.reply_message = original_reply_message
+
+        self.assertEqual(calls[0][0], "reply-token")
+        self.assertEqual(calls[0][1].text, "テスト返信")
+
     def test_media_endpoint_returns_404_for_missing_file(self):
         response = app.app.test_client().get("/media/not-found.jpg")
         self.assertEqual(response.status_code, 404)
