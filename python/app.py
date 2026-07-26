@@ -12,19 +12,11 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
     AudioMessage,
-    AudioSendMessage,
     FileMessage,
     ImageMessage,
-    ImageSendMessage,
-    LocationMessage,
-    LocationSendMessage,
     MessageEvent,
-    StickerMessage,
-    StickerSendMessage,
     TextMessage,
-    TextSendMessage,
     VideoMessage,
-    VideoSendMessage,
 )
 
 load_dotenv(override=True)
@@ -39,7 +31,6 @@ def load_config():
     with CONFIG_PATH.open(encoding="utf-8") as file:
         config = json.load(file)
     config.setdefault("features", {})
-    config.setdefault("timeline", {})
     config.setdefault("media", {})
     return config
 
@@ -166,8 +157,6 @@ def get_user(event):
                 "SELECT * FROM users WHERE line_user_id = ?", (line_user_id,)
             ).fetchone()
             return user
-        if not feature_enabled("registration"):
-            return None
         timestamp = now()
         db.execute(
             "INSERT INTO users(line_user_id, display_name, created_at, updated_at) VALUES (?, ?, ?, ?)",
@@ -226,17 +215,28 @@ def reply(event, text):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text))
 
 
-def is_new_user(user):
-    return user["created_at"] == user["updated_at"]
-
-
 def usage_text():
     return (
         "使い方:\n"
-        "・テキスト、画像、音声、動画、ファイル、位置情報、スタンプを投稿できます。\n"
-        "・他の人の投稿を見るときは「新着」と送信してください。\n"
-        "・使える機能はコミュニティの設定で変わります。"
+        "・文章、写真、音声、動画、ファイルを送ると投稿として保存されます。\n"
+        "・保存後、最近の投稿が返信されます。"
     )
+
+
+def has_posts(user_id):
+    with db_connection() as db:
+        return db.execute("SELECT 1 FROM posts WHERE user_id=? AND status='published' LIMIT 1", (user_id,)).fetchone() is not None
+
+
+def saved_posts_text(user_id, limit=10):
+    with db_connection() as db:
+        posts = db.execute("SELECT type, text FROM posts WHERE user_id=? AND status='published' ORDER BY id DESC LIMIT ?", (user_id, limit)).fetchall()
+    labels = {"text": "文章", "image": "写真", "audio": "音声", "video": "動画", "file": "ファイル"}
+    lines = ["保存済みの投稿:"]
+    for post in posts:
+        value = (post["text"] or "").replace("\n", " ").strip()
+        lines.append(f"・{labels.get(post['type'], post['type'])}" + (f": {value[:80]}" if value else ""))
+    return "\n".join(lines) if lines else "保存済みの投稿はありません。"
 
 
 @app.route("/")
@@ -266,7 +266,7 @@ def callback():
 def ensure_active(event):
     user = get_user(event)
     if not user or user["status"] != "active":
-        reply(event, "登録が必要です。まず「登録」と送信してください。")
+        reply(event, "この投稿を受け付けられません。")
         return None
     return user
 
@@ -274,24 +274,6 @@ def ensure_active(event):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text(event):
     text = event.message.text.strip()
-    if text == "登録":
-        user = get_user(event)
-        if user:
-            reply(event, "登録されています。\n\n" + usage_text())
-        else:
-            reply(event, "現在、新規登録を受け付けていません。")
-        return
-    if text == "退会":
-        with db_connection() as db:
-            db.execute("UPDATE users SET status='deleted', updated_at=? WHERE line_user_id=?", (now(), event.source.user_id))
-        reply(event, "退会しました。")
-        return
-    if text in {"使い方", "ヘルプ"}:
-        reply(event, "投稿はそのまま送信してください。新着投稿を見るときは「新着」と送信してください。")
-        return
-    if text.lower() in {"新着", "タイムライン", "最新", "timeline", "latest", "new"}:
-        fetch_posts(event)
-        return
     user = ensure_active(event)
     if not user:
         return
@@ -301,10 +283,9 @@ def handle_text(event):
     if not text:
         reply(event, "空の投稿はできません。")
         return
+    first_post = not has_posts(user["id"])
     save_post(user["id"], "text", text)
-    response = "投稿しました。"
-    if is_new_user(user):
-        response += "\n\n" + usage_text()
+    response = usage_text() if first_post else "投稿しました。\n\n" + saved_posts_text(user["id"])
     reply(event, response)
 
 
@@ -315,12 +296,11 @@ def handle_media(event, message, media_type, extension, mime_type):
     if not media_type_enabled(media_type):
         reply(event, f"{media_type}の投稿は現在利用できません。")
         return
+    first_post = not has_posts(user["id"])
     filename = save_line_content(message, media_type, extension)
     save_post(user["id"], media_type, media_url=media_url(filename), mime_type=mime_type,
               duration_ms=getattr(message, "duration", None))
-    response = f"{media_type}を投稿しました。"
-    if is_new_user(user):
-        response += "\n\n" + usage_text()
+    response = usage_text() if first_post else f"{media_type}を投稿しました。\n\n" + saved_posts_text(user["id"])
     reply(event, response)
 
 
@@ -343,77 +323,6 @@ def handle_video(event):
 def handle_file(event):
     handle_media(event, event.message, "file", "bin", "application/octet-stream")
 
-
-@handler.add(MessageEvent, message=LocationMessage)
-def handle_location(event):
-    user = ensure_active(event)
-    if not user:
-        return
-    if not media_type_enabled("location"):
-        reply(event, "位置情報の投稿は現在利用できません。")
-        return
-    save_post(user["id"], "location", event.message.title,
-              address=event.message.address, latitude=event.message.latitude,
-              longitude=event.message.longitude)
-    response = "位置情報を投稿しました。"
-    if is_new_user(user):
-        response += "\n\n" + usage_text()
-    reply(event, response)
-
-
-@handler.add(MessageEvent, message=StickerMessage)
-def handle_sticker(event):
-    user = ensure_active(event)
-    if not user:
-        return
-    if not media_type_enabled("sticker"):
-        reply(event, "スタンプ投稿は現在利用できません。")
-        return
-    save_post(user["id"], "sticker", package_id=event.message.package_id,
-              sticker_id=event.message.sticker_id)
-    response = "スタンプを投稿しました。"
-    if is_new_user(user):
-        response += "\n\n" + usage_text()
-    reply(event, response)
-
-
-def fetch_posts(event):
-    user = ensure_active(event)
-    if not user or not feature_enabled("post_fetch"):
-        if user and not feature_enabled("post_fetch"):
-            reply(event, "タイムライン機能は現在利用できません。")
-        return
-    limit = int(config["timeline"].get("posts_per_request", 10))
-    include_author = bool(config["timeline"].get("include_author_posts", True))
-    with db_connection() as db:
-        condition = "" if include_author else "AND p.user_id != ?"
-        params = [] if include_author else [user["id"]]
-        posts = db.execute(
-            f"""SELECT p.* FROM posts p
-                WHERE p.status='published' {condition}
-                ORDER BY p.created_at DESC, p.id DESC LIMIT ?""",
-            params + [limit],
-        ).fetchall()
-    if not posts:
-        reply(event, "新しい投稿はありません。")
-        return
-    messages = []
-    for post in posts:
-        if post["type"] == "text":
-            messages.append(TextSendMessage(text=post["text"]))
-        elif post["type"] == "image" and post["media_url"]:
-            messages.append(ImageSendMessage(original_content_url=post["media_url"], preview_image_url=post["media_url"]))
-        elif post["type"] == "audio" and post["media_url"]:
-            messages.append(AudioSendMessage(original_content_url=post["media_url"], duration=post["duration_ms"] or 1000))
-        elif post["type"] == "video" and post["media_url"]:
-            messages.append(VideoSendMessage(original_content_url=post["media_url"], preview_image_url=post["media_url"]))
-        elif post["type"] == "location":
-            messages.append(LocationSendMessage(title=post["text"] or "投稿場所", address=post["address"], latitude=post["latitude"], longitude=post["longitude"]))
-        elif post["type"] == "sticker":
-            messages.append(StickerSendMessage(package_id=post["package_id"], sticker_id=post["sticker_id"]))
-        else:
-            messages.append(TextSendMessage(text=post["text"] or f"{post['type']}の投稿: {post['media_url'] or '保存済み'}"))
-    line_bot_api.reply_message(event.reply_token, messages[:5])
 
 
 if __name__ == "__main__":

@@ -1,80 +1,70 @@
 # User Flow
 
-## Overview
+## 正本
+
+この資料は [core-spec.md](core-spec.md) の固定フローを図で示す。
+
+## 固定フロー
 
 ```mermaid
 flowchart TD
-    A[User follows the LINE Bot] --> B{Registered user?}
-    B -- No --> C[Send first message]
-    C --> D[Create user record]
-    B -- Yes --> E[Receive user message]
-    D --> F{Message type}
-    E --> F
-
-    F -- Text --> G[Save text post]
-    F -- Image / Audio / Video --> H[Save media and post record]
-    F -- File --> I[Save file and post record]
-    F -- Location --> J[Save location post]
-    F -- Sticker --> K[Save sticker post]
-    F -- New posts command --> L[Fetch recent posts]
-    F -- Help --> M[Show usage]
-    F -- Leave --> N[Mark user as deleted]
-
-    G --> O{First post?}
-    H --> O
-    I --> O
-    J --> O
-    K --> O
-    O -- Yes --> P[Reply: posted + usage guide]
-    O -- No --> Q[Reply: posted]
-
-    L --> R{Recent posts exist?}
-    R -- Yes --> S[Reply with posts]
-    R -- No --> T[Reply: no new posts]
+    A[最初の投稿] --> B[投稿として保存]
+    B --> C[使い方を返信]
+    C --> D[次の投稿]
+    D --> E[投稿として保存]
+    E --> F[最近の投稿を取得]
+    F --> G[投稿内容だけを返信]
+    G --> D
 ```
 
-## First-time user flow
+## 最初の投稿
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant L as LINE
+    participant P as Platform
     participant B as Bot
     participant DB as Database
 
-    U->>L: Send first post
-    L->>B: Webhook event
-    B->>DB: Create user record
-    B->>DB: Save post
-    B-->>L: Reply posted + usage guide
-    L-->>U: Confirmation and instructions
+    U->>P: 最初の投稿を送る
+    P->>B: 入力イベントを渡す
+    B->>DB: 投稿を保存
+    B-->>P: 使い方を返信
+    P-->>U: 使い方を表示
+    Note over B,DB: ユーザー情報の登録は内部処理として行う
 ```
 
-## Pull-based timeline flow
+## 2回目以降の入力
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant L as LINE
+    participant P as Platform
     participant B as Bot
     participant DB as Database
 
-    U->>L: Send "新着" / "タイムライン"
-    L->>B: Webhook event
-    B->>DB: Find recent published posts
-    DB-->>B: Return posts
-    B-->>L: Reply with up to configured number of posts
-    L-->>U: Display other users' posts
+    U->>P: 対応している投稿を送る
+    P->>B: 入力イベントを渡す
+    B->>DB: 投稿を保存
+    B->>DB: 最近の投稿を取得
+    DB-->>B: 投稿内容の一覧
+    B-->>P: 保存結果と最近の投稿を返信
+    P-->>U: 投稿内容だけを表示
 ```
 
-## Content rules
+## 入力と動作
 
-```mermaid
-flowchart LR
-    A[Incoming content] --> B{Enabled in config.json?}
-    B -- No --> C[Reply unavailable]
-    B -- Yes --> D{Valid size and format?}
-    D -- No --> E[Reply validation error]
-    D -- Yes --> F[Save post]
-    F --> G[Available on next Pull request]
-```
+| 入力 | 動作 |
+| --- | --- |
+| 最初の対応投稿（文章・写真・音声・動画・ファイル） | 保存し、使い方を返信 |
+| 2回目以降の対応投稿（文章・写真・音声・動画・ファイル） | 保存し、最近の投稿を返信 |
+
+返信の形式は、MVPではテキスト形式を基本とする。入力コンテンツに合わせた形式での返信（写真には写真、動画には動画）は将来対応する。
+
+## 重要な制約
+
+- ユーザー登録操作を要求しない
+- ボタンやリッチメニューを必須にしない
+- Botから先にPush通知しない
+- 投稿者名やユーザーIDを表示しない
+- 検索、編集、コメント、リアクションはMVPに含めない

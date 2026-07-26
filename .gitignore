@@ -4,3 +4,9 @@ uploaded_media/
 uploaded_images/
 __pycache__/
 sns_bot.db
+.pytest_cache/
+*.pyc
+python/.venv/
+python/__pycache__/
+python/uploaded_media/
+python/sns_bot.db

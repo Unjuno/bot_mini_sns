@@ -64,6 +64,20 @@ class MiniSNSAppTests(unittest.TestCase):
         self.assertEqual(post["type"], "text")
         self.assertEqual(post["text"], "Hello community")
 
+    def test_empty_user_has_no_posts_and_saved_summary_is_updated(self):
+        with app.db_connection() as db:
+            db.execute(
+                "INSERT INTO users(line_user_id, created_at, updated_at) VALUES (?, ?, ?)",
+                ("U-empty", app.now(), app.now()),
+            )
+            user_id = db.execute(
+                "SELECT id FROM users WHERE line_user_id=?", ("U-empty",)
+            ).fetchone()["id"]
+        self.assertFalse(app.has_posts(user_id))
+        app.save_post(user_id, "text", "最初の投稿")
+        self.assertTrue(app.has_posts(user_id))
+        self.assertIn("最初の投稿", app.saved_posts_text(user_id))
+
     def test_enabled_media_types_are_configurable(self):
         original_types = app.config["media"]["enabled_types"]
         app.config["media"]["enabled_types"] = ["image", "sticker"]
