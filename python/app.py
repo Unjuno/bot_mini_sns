@@ -12,12 +12,15 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
     AudioMessage,
+    AudioSendMessage,
     FileMessage,
     ImageMessage,
+    ImageSendMessage,
     MessageEvent,
     TextMessage,
     TextSendMessage,
     VideoMessage,
+    VideoSendMessage,
 )
 
 load_dotenv(override=True)
@@ -216,6 +219,41 @@ def reply(event, text):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text))
 
 
+def recent_posts(user_id, post_type, limit=5):
+    with db_connection() as db:
+        return db.execute(
+            """SELECT type, text, media_url, duration_ms FROM posts
+               WHERE user_id=? AND type=? AND status='published'
+               ORDER BY id DESC LIMIT ?""",
+            (user_id, post_type, limit),
+        ).fetchall()
+
+
+def reply_same_type(event, posts):
+    """Send same-type recent content in one LINE reply request."""
+    messages = []
+    post_type = posts[0]["type"] if posts else None
+    if post_type == "file":
+        urls = [post["media_url"] for post in posts[:5] if post["media_url"]]
+        if urls:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="\n".join(urls)[:5000]))
+        else:
+            reply(event, "返信できるコンテンツがありません。")
+        return
+    for post in posts[:5]:
+        url = post["media_url"]
+        if post_type == "image" and url:
+            messages.append(ImageSendMessage(original_content_url=url, preview_image_url=url))
+        elif post_type == "audio" and url and post["duration_ms"] is not None:
+            messages.append(AudioSendMessage(original_content_url=url, duration=post["duration_ms"]))
+        elif post_type == "video" and url:
+            messages.append(VideoSendMessage(original_content_url=url, preview_image_url=url))
+    if messages:
+        line_bot_api.reply_message(event.reply_token, messages)
+    else:
+        reply(event, "返信できるコンテンツがありません。")
+
+
 def usage_text():
     return (
         "使い方:\n"
@@ -286,8 +324,9 @@ def handle_text(event):
         return
     first_post = not has_posts(user["id"])
     save_post(user["id"], "text", text)
-    response = usage_text() if first_post else "投稿しました。\n\n" + saved_posts_text(user["id"])
-    reply(event, response)
+    posts = recent_posts(user["id"], "text")
+    text_values = [post["text"] for post in posts if post["text"]]
+    reply(event, "\n\n".join(text_values[:5]) or "返信できる文章がありません。")
 
 
 def handle_media(event, message, media_type, extension, mime_type):
@@ -299,10 +338,11 @@ def handle_media(event, message, media_type, extension, mime_type):
         return
     first_post = not has_posts(user["id"])
     filename = save_line_content(message, media_type, extension)
-    save_post(user["id"], media_type, media_url=media_url(filename), mime_type=mime_type,
-              duration_ms=getattr(message, "duration", None))
-    response = usage_text() if first_post else f"{media_type}を投稿しました。\n\n" + saved_posts_text(user["id"])
-    reply(event, response)
+    saved_media_url = media_url(filename)
+    duration_ms = getattr(message, "duration", None)
+    save_post(user["id"], media_type, media_url=saved_media_url, mime_type=mime_type,
+              duration_ms=duration_ms)
+    reply_same_type(event, recent_posts(user["id"], media_type))
 
 
 @handler.add(MessageEvent, message=ImageMessage)
@@ -323,6 +363,14 @@ def handle_video(event):
 @handler.add(MessageEvent, message=FileMessage)
 def handle_file(event):
     handle_media(event, event.message, "file", "bin", "application/octet-stream")
+
+
+@handler.default()
+def handle_unsupported_event(event):
+    """Reply instead of silently ignoring unsupported LINE events/content."""
+    message = getattr(event, "message", None)
+    content_type = getattr(message, "type", "この種類")
+    reply(event, f"申し訳ありません。「{content_type}」には対応していません。")
 
 
 

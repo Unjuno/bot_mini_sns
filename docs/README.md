@@ -2,15 +2,14 @@
 
 ## プロジェクト概要
 
-このプロジェクトは、Botを共通インターフェースとして利用する**共存型マイクロSNS**である。
-LINE、Telegram、Discord、Zulipなどの大手・既存サービスと共存し、小規模コミュニティ向けの投稿・共有機能を提供する。
+このプロジェクトは、Python版・LINE連携を現行スコープとする**共存型マイクロSNS**である。
+Telegram、Discord、Zulipなどは将来拡張として設計資料に記載するが、現行実装の対象外とする。
 投稿一覧では投稿者名を表示せず、内容を中心に扱う。
 
-現行MVPの操作は固定フローのみとする。
+現行MVPの操作は固定フローのみとする。送信元プラットフォームとコンテンツ種別が一致する最新投稿を、各サービスの上限まで返す。
 
 ```text
-最初の対応投稿 → 保存 → 使い方を返信
-次の対応投稿 → 保存 → 最近の投稿を返信
+コンテンツを送信 → 保存 → 同じ種類の最新コンテンツを最大数返信
 ```
 
 キーワード、コマンド、検索、リッチメニューは現行MVPの必須機能ではない。将来の追加機能も翻訳と広告に限定する。
@@ -28,6 +27,7 @@ LINE、Telegram、Discord、Zulipなどの大手・既存サービスと共存�
 | [implementation-languages.md](implementation-languages.md) | 対応プログラミング言語とデプロイ方針 |
 | [../formal/README.md](../formal/README.md) | Lean 4で実行できる形式証明 |
 | [platform-research-2026-07-26.md](platform-research-2026-07-26.md) | プラットフォーム料金・利用条件の調査 |
+| [content-batch-spec.md](content-batch-spec.md) | 同種コンテンツの直近一括返信とプラットフォーム差分 |
 | [platforms/README.md](platforms/README.md) | プラットフォーム別の料金・使い方・適合性 |
 | [user-flow.md](user-flow.md) | 利用者の操作フロー |
 
