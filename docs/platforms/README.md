@@ -2,7 +2,22 @@
 
 調査日：2026年7月26日（日本時間）
 
-各プラットフォームについて、料金、Botの利用方法、ADKomeの固定フローへの適合性を個別に整理する。
+各プラットフォームについて、料金、Botの利用方法、固定フローへの適合性を個別に整理する。
+
+## 実装ステータス
+
+全プラットフォームは `python/platforms/catalog.py` の共通契約に登録され、`create_adapter(name, offline=True)` で認証なしの検証ができます。
+ネイティブAPIアダプターがあるものは公式API形式で送受信し、それ以外は `ConfiguredHTTPAdapter` で、各サービスのWebhook変換先を共通JSONへ接続できます。
+
+### 検証方法
+
+```powershell
+cd python
+python -m unittest discover -s tests -v
+```
+
+実サービスの認証情報なしでも、全17サービスについて受信イベントの検証、同一種類コンテンツの返信件数制限、送信ペイロードの生成をテストできます。
+実サービスへ接続する場合は、ネイティブアダプターの環境変数、または未実装サービスの `<PLATFORM>_ADAPTER_ENDPOINT` と `<PLATFORM>_TOKEN` を設定します。
 
 ## 優先順位
 
