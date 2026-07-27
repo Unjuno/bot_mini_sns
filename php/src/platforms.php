@@ -32,7 +32,7 @@ function line_send_reply(array $event, array $reply, string $accessToken): void
             $messages[] = $item;
         }
     }
-    $ch = curl_init('https://api.line.me/v2/bot/message/reply');
+    $ch = adapter_curl_init('https://api.line.me/v2/bot/message/reply');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer '.$accessToken, 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['replyToken' => $token, 'messages' => $messages], JSON_THROW_ON_ERROR)]);
     $response = curl_exec($ch); $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE); if ($response === false || $status < 200 || $status >= 300) throw new RuntimeException('LINE API request failed'); curl_close($ch);
 }
