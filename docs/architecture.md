@@ -72,13 +72,15 @@ my_first_bot/                  # リポジトリルート（言語非依存）
 │   ├── app.py                 #   起動エントリポイント
 │   ├── config.json            #   Python用実行時設定
 │   └── requirements.txt       #   Python依存パッケージ
-├── typescript/                # TypeScript / Node.js実装
-├── php/                       # PHP実装
-├── go/                        # Go実装
+├── typescript/                # TypeScript / Node.js独立実装（common・server・platforms）
+├── php/                       # PHP独立実装（common・server・platforms）
+├── go/                        # Go独立実装（common・server・platforms）
 ├── .env.example               # 環境変数テンプレート
 ├── README.md
 └── .gitignore
 ```
+
+`python/`、`typescript/`、`php/`、`go/`はそれぞれ独立した実行単位である。各言語版が自身の共通イベント処理、保存処理、Webhook入口、17プラットフォームのアダプターを持ち、実行時にPythonサービスを呼び出すことはない。`docs/`と`formal/`は実装間で共有する仕様・検証資料であり、ランタイム依存ではない。
 
 ## モジュール責務
 
