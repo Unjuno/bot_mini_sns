@@ -56,7 +56,6 @@ SQLite / 将来はPostgreSQLや外部ストレージ
 ```text
 my_first_bot/                  # リポジトリルート（言語非依存）
 ├── docs/                      # 仕様・設計・調査資料（全言語共通）
-├── formal/                    # Lean 4形式証明（全言語共通）
 ├── python/                    # Python実装
 │   ├── core/                  #   プラットフォーム非依存の共通処理
 │   │   ├── models.py          #     データ型（Pydantic = OpenAPI準拠）
@@ -80,7 +79,7 @@ my_first_bot/                  # リポジトリルート（言語非依存）
 └── .gitignore
 ```
 
-`python/`、`typescript/`、`php/`、`go/`はそれぞれ独立した実行単位である。各言語版が自身の共通イベント処理、保存処理、Webhook入口、17プラットフォームのアダプターを持ち、実行時にPythonサービスを呼び出すことはない。`docs/`と`formal/`は実装間で共有する仕様・検証資料であり、ランタイム依存ではない。
+`python/`、`typescript/`、`php/`、`go/`はそれぞれ独立した実行単位である。各言語版が自身の共通イベント処理、保存処理、Webhook入口、17プラットフォームのアダプターを持ち、実行時にPythonサービスを呼び出すことはない。`docs/`は実装間で共有する仕様資料であり、ランタイム依存ではない。
 
 ## モジュール責務
 
@@ -116,15 +115,15 @@ SQLite直操作。将来のストレージ変更はこの層だけ書き換え�
 
 ### python/core/engine.py — 固定フロー
 
-Lean 4の `step` 関数に対応する2つの純粋関数で構成する。
+固定フローに対応する2つの純粋関数で構成する。
 
-| 関数 | 役割 | Lean対応 |
+| 関数 | 役割 |
 |---|---|---|
-| `decide_actions(is_first, event)` | Action列を返す | `step(state, input) → (state, actions)` |
-| `build_reply(actions, recent_posts)` | Actionから返信を組み立て | 実装側の整形 |
+| `decide_actions(is_first, event)` | Action列を返す |
+| `build_reply(actions, recent_posts)` | Actionから返信を組み立て |
 
 プラットフォームAPI・ネットワーク・ファイルI/Oに依存しない。
-`formal/FixedFlow.lean` の定理がそのままPython版のテスト項目になる。
+固定フローのテスト項目はPythonおよび各言語の自動テストで検証する。
 
 ### python/core/config.py — 設定
 
@@ -167,7 +166,6 @@ Platform Reply
 
 - どのテストも `.env` ・実トークン・実ネットワークを必要としない
 - `python -m unittest discover -s tests -v` 一発で全テスト実行
-- Leanの定理 → engineのテスト項目、として追跡可能にする
 
 ## 共通インターフェース
 
@@ -235,7 +233,7 @@ Platform Reply
    - `python/core/database.py` — DB操作（SQLite直操作）
    - `python/core/config.py` — 設定読み込み
    - 対応するテストを先に書き、ビューアイソレーションで実行
-   - テスト項目は `formal/FixedFlow.lean` の定理と対応させる
+   - テスト項目は `docs/core-spec.md` の確定仕様と対応させる
 
 2. **app.py を core/ 呼び出しに置き換え**（段階移行中。既存LINEアプリは維持）
    - app.pyはFlask + LINE Webhookだけに薄くする

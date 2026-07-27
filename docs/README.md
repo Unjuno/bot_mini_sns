@@ -27,9 +27,7 @@ Python版では対象17プラットフォームの共通契約とオフライン
 | [core-spec.md](core-spec.md) | 確定した本体仕様と拡張契約 |
 | [future-vision.md](future-vision.md) | 保留中の将来アイデア（現行対象外） |
 | [openapi.yaml](openapi.yaml) | 言語・サービス共通のHTTP/JSONインターフェース |
-| [lean4-spec.md](lean4-spec.md) | Lean 4で固定フローを検証するためのモデル |
 | [implementation-languages.md](implementation-languages.md) | 対応プログラミング言語とデプロイ方針 |
-| [../formal/README.md](../formal/README.md) | Lean 4で実行できる形式証明 |
 | [platform-research-2026-07-26.md](platform-research-2026-07-26.md) | プラットフォーム料金・利用条件の調査 |
 | [content-batch-spec.md](content-batch-spec.md) | 同種コンテンツの直近一括返信とプラットフォーム差分 |
 | [platforms/README.md](platforms/README.md) | プラットフォーム別の料金・使い方・適合性 |
