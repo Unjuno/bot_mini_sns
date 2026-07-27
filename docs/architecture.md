@@ -63,7 +63,7 @@ my_first_bot/                  # リポジトリルート（言語非依存）
 │   │   ├── database.py        #     DB操作（SQLite）
 │   │   ├── engine.py          #     固定フロー（State → Action列）
 │   │   └── config.py          #     設定読み込み
-│   ├── platforms/             #   サービス別アダプター（順次追加）
+│   ├── platforms/             #   17サービスのネイティブアダプター
 │   ├── tests/                 #   テスト
 │   │   ├── test_core_engine.py    # engineのテスト（DB不要）
 │   │   ├── test_core_database.py  # databaseのテスト（一時SQLite）
@@ -72,8 +72,9 @@ my_first_bot/                  # リポジトリルート（言語非依存）
 │   ├── app.py                 #   起動エントリポイント
 │   ├── config.json            #   Python用実行時設定
 │   └── requirements.txt       #   Python依存パッケージ
-├── node/                      # (将来) Node.js実装
-├── rust/                      # (将来) Rust実装
+├── typescript/                # TypeScript / Node.js実装
+├── php/                       # PHP実装
+├── go/                        # Go実装
 ├── .env.example               # 環境変数テンプレート
 ├── README.md
 └── .gitignore
@@ -160,7 +161,7 @@ Platform Reply
 | `test_core_database.py` | 一時SQLite (`tempfile`) | sqlite3のみ |
 | `test_core_models.py` | 純粋なデータ型テスト | なし |
 | `test_app.py` | Flaskテストクライアント | Flask, sqlite3 |
-| 将来: `test_line_adapter.py` | LINE SDKをモック | 要 mock |
+| `test_native_text_adapters.py` | LINEを含むネイティブアダプターをモック | 実装済み |
 
 - どのテストも `.env` ・実トークン・実ネットワークを必要としない
 - `python -m unittest discover -s tests -v` 一発で全テスト実行
