@@ -12,6 +12,9 @@ export type InboundEvent = {
   content_type: ContentType;
   text?: string;
   media_url?: string | null;
+  reply_token?: string | null;
+  reply_target?: string | null;
+  reply_to_id?: string | null;
 };
 
 export type OutboundReply = {

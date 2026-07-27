@@ -23,6 +23,9 @@ type InboundEvent struct {
 	ContentType string `json:"content_type"`
 	Text        string `json:"text,omitempty"`
 	MediaURL    string `json:"media_url,omitempty"`
+	ReplyToken  string `json:"reply_token,omitempty"`
+	ReplyTarget string `json:"reply_target,omitempty"`
+	ReplyToID   string `json:"reply_to_id,omitempty"`
 }
 
 type OutboundMessage struct {
