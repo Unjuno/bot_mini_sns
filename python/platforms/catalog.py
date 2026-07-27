@@ -17,7 +17,8 @@ def _cap(name: str, *, group: bool = False, attachments: bool = False,
     )
 
 
-# These are capability declarations, not claims that credentials or SDKs are configured.
+# These are contract declarations. `production_ready` is deliberately separate:
+# credentials alone do not prove webhook, signature, media, and reply handling.
 PLATFORM_CATALOG = {
     "line": _cap("line", max_reply_items=5),
     "telegram": _cap("telegram", group=True, max_reply_items=10),
@@ -37,3 +38,8 @@ PLATFORM_CATALOG = {
     "twitch": _cap("twitch", max_reply_items=5),
     "reddit": _cap("reddit", max_reply_items=5),
 }
+
+# Only the LINE reference path currently has a complete production entrypoint.
+# Other adapters remain available for offline/common-contract testing until their
+# platform-specific webhook and API requirements are completed and verified.
+PRODUCTION_READY = {name: name == "line" for name in PLATFORM_CATALOG}

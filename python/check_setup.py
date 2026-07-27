@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from platforms.catalog import PRODUCTION_READY
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT.parent / ".env", override=False)
@@ -45,6 +46,13 @@ def main() -> int:
     if args.offline:
         print(f"OK: {platform} offline configuration")
         return 0
+    if not PRODUCTION_READY.get(platform, False):
+        print(
+            f"Not ready: {platform} is available for offline testing only; "
+            "its production webhook/API path is not verified",
+            file=sys.stderr,
+        )
+        return 1
     missing = [name for name in REQUIRED[platform] if not os.getenv(name, "").strip()]
     if missing:
         print(f"Missing for {platform}: {', '.join(missing)}", file=sys.stderr)
