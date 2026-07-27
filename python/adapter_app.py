@@ -7,6 +7,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 from core.service import SQLitePostRepository, process_event
 from platforms import create_adapter
@@ -66,9 +67,12 @@ def webhook():
         reply = process_event(event, repository, adapter.capabilities.max_reply_items or 5)
         adapter.send_reply(event, reply)
         return jsonify(reply.model_dump()), 200
-    except Exception as error:
+    except ValidationError:
+        app.logger.exception("Invalid platform webhook payload")
+        return jsonify({"error": "invalid webhook payload"}), 400
+    except Exception:
         app.logger.exception("Platform webhook failed")
-        return jsonify({"error": str(error)}), 400
+        return jsonify({"error": "webhook processing failed"}), 500
 
 
 if __name__ == "__main__":

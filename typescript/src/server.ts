@@ -65,8 +65,9 @@ const server = createServer((request, response) => {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify(reply));
     } catch (error) {
+      console.error("Webhook processing failed", error);
       response.writeHead(400, { "content-type": "application/json" });
-      response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Invalid event" }));
+      response.end(JSON.stringify({ error: "invalid webhook payload" }));
     }
   });
 });

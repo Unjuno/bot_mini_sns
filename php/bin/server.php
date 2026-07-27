@@ -53,10 +53,16 @@ try {
         ? kakaotalk_render_reply($reply)
         : $reply;
     echo json_encode($response, JSON_THROW_ON_ERROR);
-} catch (Throwable $error) {
-    http_response_code(400);
+} catch (InvalidArgumentException $error) {
+    error_log((string) $error);
+    if (http_response_code() < 400) http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['error' => $error->getMessage()], JSON_THROW_ON_ERROR);
+    echo json_encode(['error' => 'invalid webhook payload'], JSON_THROW_ON_ERROR);
+} catch (Throwable $error) {
+    error_log((string) $error);
+    if (http_response_code() < 400) http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'webhook processing failed'], JSON_THROW_ON_ERROR);
 }
 
 /** @return array{0: array<string,mixed>, 1: ?Closure} */

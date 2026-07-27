@@ -62,7 +62,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	event, adapter, renderReply, err := runtimeEvent(payload)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 	postsMu.Lock()
@@ -70,7 +70,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	reply, err := postStore.ProcessEvent(event, replyLimit(event.Platform))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 	if renderReply != nil {
@@ -84,7 +84,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if adapter != nil {
 		if err := adapter(event, reply); err != nil {
 			w.WriteHeader(http.StatusBadGateway)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "platform delivery failed"})
 			return
 		}
 	}
