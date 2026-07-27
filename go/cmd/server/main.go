@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	common "my_first_bot/go"
@@ -26,9 +27,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid body"})
 		return
 	}
-	if os.Getenv("PLATFORM") == "line" && !common.VerifyHMACSHA256(rawBody, os.Getenv("CHANNEL_SECRET"), r.Header.Get("X-Line-Signature"), "") {
+	platform := strings.ToLower(strings.TrimSpace(os.Getenv("PLATFORM")))
+	if platform == "line" && !common.VerifyHMACSHA256(rawBody, os.Getenv("CHANNEL_SECRET"), r.Header.Get("X-Line-Signature"), "") {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid LINE signature"})
+		return
+	}
+	if platform == "slack" && !common.VerifySlackSignature(rawBody, os.Getenv("SLACK_SIGNING_SECRET"), r.Header.Get("X-Slack-Request-Timestamp"), r.Header.Get("X-Slack-Signature")) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid Slack signature"})
+		return
+	}
+	if platform == "whatsapp" && !common.VerifyHMACSHA256Hex(rawBody, os.Getenv("WHATSAPP_APP_SECRET"), r.Header.Get("X-Hub-Signature-256"), "sha256=") {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid WhatsApp signature"})
 		return
 	}
 	var payload map[string]any
