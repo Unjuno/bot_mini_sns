@@ -14,6 +14,13 @@ import (
 var postStore *common.PostStore
 var postsMu sync.Mutex
 
+func replyLimit(platform string) int {
+	if platform == "telegram" || platform == "discord" {
+		return 10
+	}
+	return 5
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
@@ -57,7 +64,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	postsMu.Lock()
 	defer postsMu.Unlock()
-	reply, err := postStore.ProcessEvent(event, 5)
+	reply, err := postStore.ProcessEvent(event, replyLimit(event.Platform))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
