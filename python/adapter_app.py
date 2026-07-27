@@ -22,6 +22,7 @@ if not DATABASE_PATH.is_absolute():
     DATABASE_PATH = ROOT / DATABASE_PATH
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 repository = SQLitePostRepository(DATABASE_PATH)
 adapter = None
 startup_error = None

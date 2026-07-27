@@ -2,6 +2,8 @@ package common
 
 import "fmt"
 
+const MaxEventBodyBytes = 1024 * 1024
+
 var SupportedPlatforms = []string{
 	"line", "telegram", "discord", "zulip", "matrix", "slack", "google_chat",
 	"viber", "mastodon", "misskey", "bluesky", "whatsapp", "instagram", "teams",
@@ -53,6 +55,9 @@ func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) (Outboun
 	}
 	if limit < 1 {
 		return OutboundReply{}, fmt.Errorf("limit must be a positive integer")
+	}
+	if len(event.Platform) > 32 || len(event.UserID) > 256 || len(event.Text) > 10000 || len(event.MediaURL) > 4096 {
+		return OutboundReply{}, fmt.Errorf("event field exceeds maximum length")
 	}
 	*posts = append(*posts, event)
 	result := OutboundReply{}

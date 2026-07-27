@@ -10,6 +10,14 @@ function supported_platforms(): array
         'kakaotalk', 'twitch', 'reddit'];
 }
 
+function validate_event_limits(array $event): void
+{
+    $limits = [['platform', 32], ['user_id', 256], ['text', 10000], ['media_url', 4096], ['reply_token', 512], ['reply_to_id', 512], ['reply_target', 512], ['reply_to_uri', 4096], ['reply_to_cid', 512], ['reply_mode', 32]];
+    foreach ($limits as [$field, $limit]) {
+        if (isset($event[$field]) && strlen((string) $event[$field]) > $limit) throw new InvalidArgumentException('event field exceeds maximum length');
+    }
+}
+
 function process_event(array $event, array &$posts, int $limit = 5): array
 {
     if (!in_array($event['platform'] ?? '', supported_platforms(), true)) {
@@ -24,6 +32,7 @@ function process_event(array $event, array &$posts, int $limit = 5): array
     if ($limit < 1) {
         throw new InvalidArgumentException('limit must be a positive integer');
     }
+    validate_event_limits($event);
     $posts[] = $event;
     $selected = [];
     for ($i = count($posts) - 1; $i >= 0 && count($selected) < $limit; $i--) {
@@ -52,6 +61,7 @@ function process_event_sqlite(PDO $database, array $event, int $limit = 5): arra
         throw new InvalidArgumentException('Unsupported content type');
     }
     if ($limit < 1) throw new InvalidArgumentException('limit must be a positive integer');
+    validate_event_limits($event);
 
     $database->beginTransaction();
     try {

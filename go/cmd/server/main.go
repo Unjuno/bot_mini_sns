@@ -31,7 +31,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "POST required"})
 		return
 	}
-	rawBody, err := io.ReadAll(r.Body)
+	rawBody, err := io.ReadAll(http.MaxBytesReader(w, r.Body, common.MaxEventBodyBytes))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid body"})

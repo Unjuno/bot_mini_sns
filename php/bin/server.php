@@ -24,6 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $rawBody = file_get_contents('php://input');
+    if (!is_string($rawBody) || strlen($rawBody) > 1024 * 1024) {
+        http_response_code(413);
+        throw new RuntimeException('request body too large');
+    }
     $platform = strtolower(trim((string) (getenv('PLATFORM') ?: '')));
     if ($platform === 'line' && !verify_hmac_sha256($rawBody, (string) getenv('CHANNEL_SECRET'), (string) ($_SERVER['HTTP_X_LINE_SIGNATURE'] ?? ''))) {
         http_response_code(401);

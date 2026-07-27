@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { SQLitePostStore, InboundEvent } from "./common";
+import { SQLitePostStore, InboundEvent, MAX_EVENT_BODY_BYTES } from "./common";
 import { createConfiguredAdapter } from "./platforms";
 import { verifyHmacSha256, verifyHmacSha256Hex, verifySlackSignature } from "./security";
 
@@ -20,7 +20,7 @@ const server = createServer((request, response) => {
   }
   let body = "";
   request.setEncoding("utf8");
-  request.on("data", (chunk: string) => { body += chunk; });
+  request.on("data", (chunk: string) => { body += chunk; if (Buffer.byteLength(body, "utf8") > MAX_EVENT_BODY_BYTES) request.destroy(new Error("request body too large")); });
   request.on("end", async () => {
     try {
       if (configuredPlatform === "line") {
