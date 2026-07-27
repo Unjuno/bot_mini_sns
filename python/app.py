@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, abort, request, send_from_directory
+from flask import Flask, abort, jsonify, request, send_from_directory
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
@@ -331,6 +331,27 @@ def media(filename):
         if expires < int(time.time()) or not hmac.compare_digest(supplied, expected):
             abort(403)
     return send_from_directory(MEDIA_DIR, filename)
+
+
+def require_admin() -> None:
+    expected = os.getenv("ADMIN_TOKEN", "")
+    supplied = request.headers.get("Authorization", "")
+    if not expected or not supplied.startswith("Bearer ") or not hmac.compare_digest(supplied[7:], expected):
+        abort(403)
+
+
+@app.delete("/admin/posts/<int:post_id>")
+def delete_post(post_id):
+    """Soft-delete a post; requires an explicitly configured admin token."""
+    require_admin()
+    with db_connection() as db:
+        cursor = db.execute(
+            "UPDATE posts SET status='deleted' WHERE id=? AND status!='deleted'",
+            (post_id,),
+        )
+    if cursor.rowcount == 0:
+        return jsonify({"error": "post not found"}), 404
+    return jsonify({"id": post_id, "status": "deleted"}), 200
 
 
 @app.route("/callback", methods=["POST"])

@@ -7,9 +7,12 @@
 3. 画像・音声・動画・ファイルを返信する場合は、公開HTTPSでアクセスできる`MEDIA_BASE_URL`を設定する
 4. 本番ではランダムな`MEDIA_SIGNING_SECRET`を必ず設定する。設定するとメディアURLは期限付きになり、期限は`MEDIA_URL_TTL_SECONDS`で指定できる
 5. `python/config.json`の投稿種別を必要に応じて変更する
+6. 管理者が投稿を非表示にする場合は、十分に長いランダム値を`ADMIN_TOKEN`へ設定する
 
 秘密情報を含む`.env`、SQLiteデータベース、アップロードファイルはGitへ登録しません。
 ホスティング環境などで既に環境変数が設定されている場合は、ホスティング側の値を優先します。
+
+`DELETE /admin/posts/<id>` に `Authorization: Bearer <ADMIN_TOKEN>` を付けると、投稿を物理削除せず`deleted`にできます。未認証・未設定の場合は403です。
 
 ## Python LINEアプリ
 

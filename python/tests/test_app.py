@@ -110,6 +110,33 @@ class MiniSNSAppTests(unittest.TestCase):
         response = app.app.test_client().get("/media/not-found.jpg")
         self.assertEqual(response.status_code, 404)
 
+    def test_admin_can_soft_delete_post_only_with_token(self):
+        with app.db_connection() as db:
+            db.execute(
+                "INSERT INTO users(line_user_id, created_at, updated_at) VALUES (?, ?, ?)",
+                ("admin-test-user", app.now(), app.now()),
+            )
+            user = db.execute("SELECT id FROM users WHERE line_user_id=?", ("admin-test-user",)).fetchone()
+        post_id = app.save_post(user["id"], "text", "remove me")
+        previous = os.environ.get("ADMIN_TOKEN")
+        os.environ["ADMIN_TOKEN"] = "test-admin-token"
+        try:
+            client = app.app.test_client()
+            self.assertEqual(client.delete(f"/admin/posts/{post_id}").status_code, 403)
+            response = client.delete(
+                f"/admin/posts/{post_id}",
+                headers={"Authorization": "Bearer test-admin-token"},
+            )
+            self.assertEqual(response.status_code, 200)
+            with app.db_connection() as db:
+                status = db.execute("SELECT status FROM posts WHERE id=?", (post_id,)).fetchone()["status"]
+            self.assertEqual(status, "deleted")
+        finally:
+            if previous is None:
+                os.environ.pop("ADMIN_TOKEN", None)
+            else:
+                os.environ["ADMIN_TOKEN"] = previous
+
 
 if __name__ == "__main__":
     unittest.main()
