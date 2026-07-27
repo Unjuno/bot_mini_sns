@@ -170,3 +170,27 @@ export class KakaoTalkAdapter {
   parseEvent(payload: any): InboundEvent { const request = payload.userRequest ?? {}; const user = request.user?.id ?? payload.user_id; if (!user) throw new Error("KakaoTalk request has no user"); return { platform: "kakaotalk", user_id: String(user), content_type: "text", text: request.utterance ?? "" }; }
   renderReply(reply: OutboundReply): any { return { version: "2.0", template: { outputs: reply.messages.slice(0, 3).map((message) => ({ simpleText: { text: message.text || message.media_url || "" } })) } }; }
 }
+
+export function createConfiguredAdapter(platform: string): any {
+  const env = process.env;
+  switch (platform) {
+    case "line": return new LineAdapter(env.ACCESS_TOKEN ?? "");
+    case "telegram": return new TelegramAdapter(env.TELEGRAM_BOT_TOKEN ?? "");
+    case "discord": return new DiscordAdapter(env.DISCORD_BOT_TOKEN ?? "");
+    case "mastodon": return new MastodonAdapter(env.MASTODON_BASE_URL ?? "", env.MASTODON_ACCESS_TOKEN ?? "");
+    case "misskey": return new MisskeyAdapter(env.MISSKEY_BASE_URL ?? "", env.MISSKEY_TOKEN ?? "");
+    case "bluesky": return new BlueskyAdapter(env.BLUESKY_SERVICE_URL ?? "https://bsky.social", env.BLUESKY_ACCESS_JWT ?? "", env.BLUESKY_REPO ?? "");
+    case "slack": return new SlackAdapter(env.SLACK_BOT_TOKEN ?? "");
+    case "matrix": return new MatrixAdapter(env.MATRIX_BASE_URL ?? "", env.MATRIX_ACCESS_TOKEN ?? "");
+    case "whatsapp": return new WhatsAppAdapter(env.WHATSAPP_ACCESS_TOKEN ?? "", env.WHATSAPP_PHONE_NUMBER_ID ?? "");
+    case "viber": return new ViberAdapter(env.VIBER_AUTH_TOKEN ?? "");
+    case "zulip": return new ZulipAdapter(env.ZULIP_BASE_URL ?? "", env.ZULIP_EMAIL ?? "", env.ZULIP_API_KEY ?? "");
+    case "google_chat": return new GoogleChatAdapter(env.GOOGLE_CHAT_ACCESS_TOKEN ?? "");
+    case "teams": return new TeamsAdapter(env.TEAMS_BOT_TOKEN ?? "", env.TEAMS_SERVICE_URL ?? "");
+    case "instagram": return new InstagramAdapter(env.INSTAGRAM_ACCESS_TOKEN ?? "", env.INSTAGRAM_ACCOUNT_ID ?? "");
+    case "reddit": return new RedditAdapter(env.REDDIT_ACCESS_TOKEN ?? "");
+    case "twitch": return new TwitchAdapter(env.TWITCH_ACCESS_TOKEN ?? "", env.TWITCH_CLIENT_ID ?? "", env.TWITCH_BROADCASTER_ID ?? "", env.TWITCH_SENDER_ID ?? "");
+    case "kakaotalk": return new KakaoTalkAdapter();
+    default: throw new Error(`Unsupported platform: ${platform}`);
+  }
+}
