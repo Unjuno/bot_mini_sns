@@ -79,6 +79,48 @@ export class SQLitePostStore {
   }
 }
 
+export class PostgresPostStore {
+  private readonly pool: any;
+  readonly ready: Promise<void>;
+
+  constructor(url: string) {
+    const { Pool } = require("pg") as { Pool: new (options: { connectionString: string }) => any };
+    this.pool = new Pool({ connectionString: url });
+    this.ready = this.pool.query(`CREATE TABLE IF NOT EXISTS platform_posts (
+      id BIGSERIAL PRIMARY KEY, platform TEXT NOT NULL, user_id TEXT NOT NULL,
+      content_type TEXT NOT NULL, text TEXT, media_url TEXT,
+      status TEXT NOT NULL DEFAULT 'published', created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ); CREATE TABLE IF NOT EXISTS processed_events (
+      fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ); CREATE INDEX IF NOT EXISTS platform_posts_content_type_id_idx ON platform_posts (content_type, id DESC);`).then(() => undefined);
+  }
+
+  async claimEvent(fingerprint: string): Promise<OutboundReply | null> {
+    await this.ready;
+    const existing = await this.pool.query("SELECT response_json FROM processed_events WHERE fingerprint=$1", [fingerprint]);
+    if (existing.rows[0]) return JSON.parse(existing.rows[0].response_json) as OutboundReply;
+    const inserted = await this.pool.query("INSERT INTO processed_events (fingerprint,response_json) VALUES ($1,$2) ON CONFLICT (fingerprint) DO NOTHING RETURNING fingerprint", [fingerprint, JSON.stringify({ messages: [] })]);
+    if (inserted.rowCount === 0) {
+      const concurrent = await this.pool.query("SELECT response_json FROM processed_events WHERE fingerprint=$1", [fingerprint]);
+      return concurrent.rows[0] ? JSON.parse(concurrent.rows[0].response_json) as OutboundReply : null;
+    }
+    return null;
+  }
+  async completeEvent(fingerprint: string, response: OutboundReply): Promise<void> { await this.ready; await this.pool.query("UPDATE processed_events SET response_json=$1 WHERE fingerprint=$2", [JSON.stringify(response), fingerprint]); }
+  async releaseEvent(fingerprint: string): Promise<void> { await this.ready; await this.pool.query("DELETE FROM processed_events WHERE fingerprint=$1", [fingerprint]); }
+  async softDeletePost(id: number): Promise<boolean> { await this.ready; const result = await this.pool.query("UPDATE platform_posts SET status='deleted' WHERE id=$1 AND status!='deleted'", [id]); return result.rowCount > 0; }
+  async processEvent(event: InboundEvent, limit = 5): Promise<OutboundReply> {
+    if (!(supportedPlatforms as readonly string[]).includes(event.platform) || !event.user_id || !event.content_type) throw new Error("invalid event");
+    if (!( ["text", "image", "audio", "video", "file"] as string[]).includes(event.content_type) || !Number.isInteger(limit) || limit < 1) throw new Error("invalid event");
+    if (event.platform.length > 32 || event.user_id.length > 256 || (event.text?.length ?? 0) > 10000 || (event.media_url?.length ?? 0) > 4096) throw new Error("event field exceeds maximum length");
+    await this.ready;
+    const client = await this.pool.connect();
+    try { await client.query("BEGIN"); await client.query("INSERT INTO platform_posts (platform,user_id,content_type,text,media_url) VALUES ($1,$2,$3,$4,$5)", [event.platform, event.user_id, event.content_type, event.text ?? null, event.media_url ?? null]); const rows = await client.query("SELECT content_type AS type, COALESCE(text, '') AS text, media_url FROM platform_posts WHERE content_type=$1 AND status='published' ORDER BY id DESC LIMIT $2", [event.content_type, limit]); await client.query("COMMIT"); return { messages: rows.rows.map((row: any) => ({ type: row.type, text: row.text, media_url: row.media_url })) }; } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async close(): Promise<void> { await this.pool.end(); }
+}
+
 export function processEvent(event: InboundEvent, posts: InboundEvent[], limit = 5): OutboundReply {
   if (!(supportedPlatforms as readonly string[]).includes(event.platform)) {
     throw new Error(`Unsupported platform: ${event.platform}`);

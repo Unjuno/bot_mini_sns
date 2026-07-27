@@ -1,5 +1,6 @@
 {
   "private": true,
   "scripts": {"build": "tsc", "start": "node dist/server.js", "cli": "node dist/common-cli.js", "test": "npm run build && node --test dist/platforms.test.js"},
+  "dependencies": {"pg": "^8.16.0"},
   "devDependencies": {"@types/node": "latest", "typescript": "latest"}
 }

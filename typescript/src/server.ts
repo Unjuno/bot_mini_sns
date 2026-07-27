@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
-import { SQLitePostStore, InboundEvent, MAX_EVENT_BODY_BYTES } from "./common";
+import { SQLitePostStore, PostgresPostStore, InboundEvent, MAX_EVENT_BODY_BYTES } from "./common";
 import { createConfiguredAdapter } from "./platforms";
 import { verifyHmacSha256, verifyHmacSha256Hex, verifySlackSignature } from "./security";
 
 const storePath = process.env.TYPESCRIPT_DATABASE_PATH ?? "posts.sqlite";
-const postStore = new SQLitePostStore(storePath);
+const postStore = process.env.TYPESCRIPT_DATABASE_URL ? new PostgresPostStore(process.env.TYPESCRIPT_DATABASE_URL) : new SQLitePostStore(storePath);
 const configuredPlatform = process.env.PLATFORM?.trim().toLowerCase();
 const adapter = configuredPlatform ? createConfiguredAdapter(configuredPlatform) : null;
 function replyLimitForPlatform(platform: string): number {
@@ -13,13 +13,13 @@ function replyLimitForPlatform(platform: string): number {
   if (platform === "kakaotalk") return 3;
   return 5;
 }
-const server = createServer((request, response) => {
+const server = createServer(async (request, response) => {
   const adminMatch = request.url?.match(/^\/admin\/posts\/(\d+)$/);
   if (request.method === "DELETE" && adminMatch) {
     const expected = process.env.ADMIN_TOKEN ?? "";
     const auth = request.headers.authorization ?? "";
     if (!expected || auth !== `Bearer ${expected}`) { response.writeHead(403); response.end(JSON.stringify({ error: "forbidden" })); return; }
-    const deleted = postStore.softDeletePost(Number(adminMatch[1]));
+    const deleted = await postStore.softDeletePost(Number(adminMatch[1]));
     response.writeHead(deleted ? 200 : 404, { "content-type": "application/json" });
     response.end(JSON.stringify(deleted ? { id: Number(adminMatch[1]), status: "deleted" } : { error: "post not found" }));
     return;
@@ -66,28 +66,28 @@ const server = createServer((request, response) => {
       const payload = JSON.parse(body);
       const event = adapter ? adapter.parseEvent(payload) : payload as InboundEvent;
       const fingerprint = createHash("sha256").update(`${event.platform}\0${body}`).digest("hex");
-      const previous = postStore.claimEvent(fingerprint);
+      const previous = await postStore.claimEvent(fingerprint);
       if (previous) {
         response.writeHead(200, { "content-type": "application/json" });
         response.end(JSON.stringify(previous));
         return;
       }
       claimedFingerprint = fingerprint;
-      const reply = postStore.processEvent(event, replyLimitForPlatform(event.platform));
+      const reply = await postStore.processEvent(event, replyLimitForPlatform(event.platform));
       if (adapter) {
         if (typeof adapter.sendReply === "function") await adapter.sendReply(event, reply);
         else if (typeof adapter.renderReply === "function") {
           response.writeHead(200, { "content-type": "application/json" });
-          postStore.completeEvent(fingerprint, reply);
+          await postStore.completeEvent(fingerprint, reply);
           response.end(JSON.stringify(adapter.renderReply(reply)));
           return;
         }
       }
       response.writeHead(200, { "content-type": "application/json" });
-      postStore.completeEvent(fingerprint, reply);
+      await postStore.completeEvent(fingerprint, reply);
       response.end(JSON.stringify(reply));
     } catch (error) {
-      if (claimedFingerprint) postStore.releaseEvent(claimedFingerprint);
+      if (claimedFingerprint) await postStore.releaseEvent(claimedFingerprint);
       console.error("Webhook processing failed", error);
       response.writeHead(400, { "content-type": "application/json" });
       response.end(JSON.stringify({ error: "invalid webhook payload" }));
@@ -96,4 +96,4 @@ const server = createServer((request, response) => {
 });
 
 server.listen(Number(process.env.PORT ?? 3000));
-process.on("exit", () => postStore.close());
+process.on("exit", () => { void postStore.close(); });
