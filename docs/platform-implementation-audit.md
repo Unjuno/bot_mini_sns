@@ -15,9 +15,9 @@
 | Slack | あり | **オフラインのみ** | Events API署名、URL検証、private file取得を確認する |
 | Google Chat | あり | **オフラインのみ** | Chatアプリの認証、イベント形式、添付取得を確認する |
 | Viber | あり | **オフラインのみ** | Webhook登録、購読状態、各メディアpayloadを確認する |
-| Mastodon | あり | **オフラインのみ** | Streaming/Webhook入口、メディアアップロードを確認する |
+| Mastodon | あり | **オフラインのみ** | Streaming/Webhook入口、実アカウントでメディアアップロードを確認する |
 | Misskey | あり | **オフラインのみ** | Streaming入口、Drive upload、実返信を確認する |
-| Bluesky | あり | **オフラインのみ** | AT Protocol認証、reply record、Blob uploadを確認する |
+| Bluesky | あり | **オフラインのみ** | AT Protocol認証、reply record、画像・動画Blob uploadを実アカウントで確認する。音声・一般ファイルEmbedは仕様対象外 |
 | WhatsApp | あり | **オフラインのみ** | Webhook署名、メディアID取得、24時間制限を確認する |
 | Instagram | あり。WhatsAppとは別実装 | **オフラインのみ** | Professional accountのWebhook、権限、メディア形式を確認する |
 | Teams | あり | **オフラインのみ** | Bot Framework署名、serviceUrl、conversation referenceを確認する |
