@@ -2,7 +2,7 @@
 
 調査日：2026年7月26日
 
-現行対象：Python版・LINEのみ。Telegram、Discord、Instagram、WhatsAppの記述は将来アダプター設計の参考情報であり、現行実装の要件ではない。
+基準実装：Python版・LINE。Telegram、Discord、Instagram、WhatsAppなどは同じ契約で追加する対象とする。
 
 ## 目的
 
