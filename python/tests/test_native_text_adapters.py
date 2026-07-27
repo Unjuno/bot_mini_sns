@@ -4,6 +4,7 @@ from core.models import OutboundMessage, OutboundReply
 from platforms.matrix import MatrixAdapter
 from platforms.slack import SlackAdapter
 from platforms.zulip import ZulipAdapter
+from platforms.google_chat import GoogleChatAdapter
 
 
 class Response:
@@ -40,6 +41,12 @@ class NativeTextAdapterTests(unittest.TestCase):
         event = adapter.parse_event({"event": {"user": "U1", "text": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
         self.assertEqual(event.user_id, "U1"); self.assertEqual(session.calls[0][2]["json"]["channel"], "U1")
+
+    def test_google_chat_event_and_reply(self):
+        session = Session(); adapter = GoogleChatAdapter("token", session)
+        event = adapter.parse_event({"message": {"sender": {"name": "users/1"}, "text": "hello"}})
+        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        self.assertEqual(event.user_id, "users/1"); self.assertEqual(session.calls[0][0], "post")
 
 
 if __name__ == "__main__": unittest.main()

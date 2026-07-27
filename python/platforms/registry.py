@@ -11,6 +11,7 @@ from .telegram import TelegramAdapter
 from .zulip import ZulipAdapter
 from .matrix import MatrixAdapter
 from .slack import SlackAdapter
+from .google_chat import GoogleChatAdapter
 
 
 LIVE_ADAPTERS = {
@@ -23,10 +24,11 @@ LIVE_ADAPTERS = {
     "zulip": ZulipAdapter,
     "matrix": MatrixAdapter,
     "slack": SlackAdapter,
+    "google_chat": GoogleChatAdapter,
 }
 
 CONFIGURED_PLATFORMS = {
-    "google_chat", "viber", "whatsapp",
+    "viber", "whatsapp",
     "instagram", "teams", "kakaotalk", "twitch", "reddit",
 }
 
