@@ -2,6 +2,10 @@ import json
 import os
 import sqlite3
 import logging
+import hashlib
+import hmac
+import time
+from urllib.parse import urlencode
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -196,7 +200,16 @@ def save_line_content(message, media_type, extension):
 
 def media_url(filename):
     base_url = os.getenv("MEDIA_BASE_URL", "").rstrip("/")
-    return f"{base_url}/media/{filename}" if base_url else None
+    if not base_url:
+        return None
+    secret = os.getenv("MEDIA_SIGNING_SECRET", "")
+    if not secret:
+        app.logger.warning("MEDIA_SIGNING_SECRET is not set; media URLs are public")
+        return f"{base_url}/media/{filename}"
+    expires = int(time.time()) + int(os.getenv("MEDIA_URL_TTL_SECONDS", "3600"))
+    value = f"{filename}:{expires}".encode()
+    signature = hmac.new(secret.encode(), value, hashlib.sha256).hexdigest()
+    return f"{base_url}/media/{filename}?{urlencode({'expires': expires, 'sig': signature})}"
 
 
 def save_post(user_id, post_type, message_text=None, **extra):
@@ -307,6 +320,16 @@ def index():
 
 @app.route("/media/<path:filename>")
 def media(filename):
+    secret = os.getenv("MEDIA_SIGNING_SECRET", "")
+    if secret:
+        try:
+            expires = int(request.args.get("expires", "0"))
+        except ValueError:
+            abort(403)
+        supplied = request.args.get("sig", "")
+        expected = hmac.new(secret.encode(), f"{filename}:{expires}".encode(), hashlib.sha256).hexdigest()
+        if expires < int(time.time()) or not hmac.compare_digest(supplied, expected):
+            abort(403)
     return send_from_directory(MEDIA_DIR, filename)
 
 
