@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../src/common.php';
+require __DIR__ . '/../src/security.php';
 foreach (glob(__DIR__.'/../src/{http,platforms,telegram,discord,mastodon,misskey,bluesky,slack,matrix,whatsapp,viber,zulip,google_chat,teams,instagram,reddit,twitch,kakaotalk}.php', GLOB_BRACE) as $adapterFile) {
     require_once $adapterFile;
 }
@@ -23,9 +24,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $rawBody = file_get_contents('php://input');
-    if (strtolower(trim((string) (getenv('PLATFORM') ?: ''))) === 'line' && !verify_hmac_sha256($rawBody, (string) getenv('CHANNEL_SECRET'), (string) ($_SERVER['HTTP_X_LINE_SIGNATURE'] ?? ''))) {
+    $platform = strtolower(trim((string) (getenv('PLATFORM') ?: '')));
+    if ($platform === 'line' && !verify_hmac_sha256($rawBody, (string) getenv('CHANNEL_SECRET'), (string) ($_SERVER['HTTP_X_LINE_SIGNATURE'] ?? ''))) {
         http_response_code(401);
         throw new RuntimeException('invalid LINE signature');
+    }
+    if ($platform === 'slack' && !verify_slack_signature($rawBody, (string) getenv('SLACK_SIGNING_SECRET'), (string) ($_SERVER['HTTP_X_SLACK_REQUEST_TIMESTAMP'] ?? ''), (string) ($_SERVER['HTTP_X_SLACK_SIGNATURE'] ?? ''))) {
+        http_response_code(401);
+        throw new RuntimeException('invalid Slack signature');
+    }
+    if ($platform === 'whatsapp' && !verify_hmac_sha256_hex($rawBody, (string) getenv('WHATSAPP_APP_SECRET'), (string) ($_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? ''), 'sha256=')) {
+        http_response_code(401);
+        throw new RuntimeException('invalid WhatsApp signature');
     }
     $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
     [$event, $sendReply] = runtime_adapter($payload);
