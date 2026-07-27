@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from core.service import SQLitePostRepository, process_event
 from platforms import create_adapter
+from platforms.catalog import PRODUCTION_READY
 
 
 ROOT = Path(__file__).resolve().parent
@@ -34,7 +35,16 @@ else:
 
 @app.get("/")
 def health():
-    return jsonify({"status": "ok", "platform": PLATFORM or None, "configured": adapter is not None}), 200
+    production_ready = PRODUCTION_READY.get(PLATFORM, False) if PLATFORM else False
+    healthy = adapter is not None
+    return jsonify({
+        "status": "ok" if healthy else "not_ready",
+        "platform": PLATFORM or None,
+        "configured": healthy,
+        "mode": "offline" if os.getenv("OFFLINE", "false").lower() == "true" else "production",
+        "production_ready": production_ready,
+        "error": startup_error,
+    }), 200 if healthy else 503
 
 
 @app.post("/webhook")
