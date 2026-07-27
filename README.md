@@ -1,11 +1,11 @@
-# bot_mini_sns — MVP完成版
+# bot_mini_sns — 完成版
 
 チャットサービス上で動作する、対話型マイクロSNSの共通基盤です。
 受信したコンテンツを保存し、同じプラットフォーム・同じ種類の最新コンテンツを、各プラットフォームの上限内で返信します。
 
-現行MVPの実装と検証は完了しています。実サービスで利用する場合は、利用するサービスのBot登録、Webhook設定、認証情報の登録が別途必要です。
+現行仕様の実装と検証は完了しています。実サービスで利用する場合は、利用するサービスのBot登録、Webhook設定、認証情報の登録が別途必要です。
 
-## MVPの仕様
+## 現行仕様
 
 ```text
 コンテンツを受信
@@ -169,7 +169,7 @@ GitHub Actionsでも同じ4言語の検証を実行します。外部サービ�
 
 ## ドキュメント
 
-- [docs/core-spec.md](docs/core-spec.md)：MVP本体仕様
+- [docs/core-spec.md](docs/core-spec.md)：本体仕様
 - [docs/architecture.md](docs/architecture.md)：共通基盤とアダプター境界
 - [docs/openapi.yaml](docs/openapi.yaml)：共通HTTP/JSONインターフェース
 - [docs/platforms/README.md](docs/platforms/README.md)：プラットフォーム別仕様

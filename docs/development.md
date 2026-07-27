@@ -55,9 +55,9 @@ php -l bin/server.php
 - `python/core/`：保存・同種コンテンツ返信の共通ロジック
 - `python/platforms/`：プラットフォーム固有の変換と送信
 - `php/`、`typescript/`、`go/`：共通JSONイベントを受ける各言語版Webhook
-- `docs/core-spec.md`：MVP仕様の正本
+- `docs/core-spec.md`：現行仕様の正本
 
-MVPの固定フローを変更する場合は、仕様・Pythonテスト・各言語版の共通契約を同時に更新します。翻訳、広告、検索、Push通知は現行MVPの対象外です。
+固定フローを変更する場合は、仕様・Pythonテスト・各言語版の共通契約を同時に更新します。翻訳、広告、検索、Push通知は現行仕様の対象外です。
 
 ## コミット前チェック
 
