@@ -68,6 +68,17 @@ python -m unittest discover -s tests -v
 
 `create_adapter(name, offline=True)`を使うと、アカウントやアクセストークンなしで、17プラットフォームの共通イベント、返信件数制限、コンテンツ種別を検証できます。
 
+共通Webhookサーバーを認証なしで試す場合：
+
+```powershell
+cd python
+$env:PLATFORM = "slack"
+$env:OFFLINE = "true"
+python adapter_app.py
+```
+
+`POST http://127.0.0.1:5000/webhook`へ、プラットフォーム固有形式ではなく共通イベントJSONを送信します。実サービスで使う場合は`OFFLINE=false`にし、`docs/platforms/README.md`の必須設定を登録してください。投稿は`ADAPTER_DATABASE_PATH`のSQLiteへ保存されます。
+
 ## 他言語版
 
 ### PHP

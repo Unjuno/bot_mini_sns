@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import sqlite3
+from pathlib import Path
+from datetime import datetime, timezone
+from contextlib import contextmanager
 from typing import Protocol
 
 from .models import InboundEvent, OutboundMessage, OutboundReply
@@ -36,6 +40,59 @@ class MemoryPostRepository:
             and post.user_id == user_id
             and post.content_type == content_type
         ][:limit]
+
+
+class SQLitePostRepository:
+    """Persistent repository used by the platform-neutral webhook server."""
+
+    def __init__(self, path: str | Path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS platform_posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    platform TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    content_type TEXT NOT NULL,
+                    text TEXT,
+                    media_url TEXT,
+                    created_at TEXT NOT NULL
+                )"""
+            )
+
+    def save(self, post: StoredPost) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """INSERT INTO platform_posts
+                   (platform, user_id, content_type, text, media_url, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (post.platform, post.user_id, post.content_type, post.text,
+                 post.media_url, datetime.now(timezone.utc).isoformat()),
+            )
+
+    def recent(self, platform: str, user_id: str, content_type: str, limit: int) -> list[StoredPost]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT platform, user_id, content_type, text, media_url
+                   FROM platform_posts
+                   WHERE platform=? AND user_id=? AND content_type=?
+                   ORDER BY id DESC LIMIT ?""",
+                (platform, user_id, content_type, limit),
+            ).fetchall()
+        return [StoredPost(*row) for row in rows]
+
+    @contextmanager
+    def _connect(self):
+        connection = sqlite3.connect(self.path)
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
 
 def process_event(
