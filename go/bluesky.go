@@ -1,6 +1,108 @@
 package common
 
-import("bytes";"encoding/json";"fmt";"net/http";"strings";"time")
-type BlueskyAdapter struct{ServiceURL,JWT,Repo string;Client *http.Client}
-func(a BlueskyAdapter)ParseEvent(payload map[string]any)(InboundEvent,error){record:=payload;if nested,ok:=payload["record"].(map[string]any);ok{record=nested};author,_:=payload["author"].(string);if author==""{author,_=payload["did"].(string)};text,ok:=record["text"].(string);if author==""||!ok{return InboundEvent{},fmt.Errorf("Bluesky post has no supported content")};event:=InboundEvent{Platform:"bluesky",UserID:author,ContentType:"text",Text:text};event.ReplyToURI,_=payload["uri"].(string);event.ReplyToCID,_=payload["cid"].(string);return event,nil}
-func(a BlueskyAdapter)SendReply(event InboundEvent,reply OutboundReply)error{client:=a.Client;if client==nil{client=http.DefaultClient};for _,message:=range reply.Messages{if message.Type!="text"{return fmt.Errorf("Bluesky Blob upload is required before media replies")};record:=map[string]any{"$type":"app.bsky.feed.post","text":message.Text,"createdAt":time.Now().UTC().Format(time.RFC3339Nano)};if event.ReplyToURI!=""&&event.ReplyToCID!=""{record["reply"]=map[string]any{"root":map[string]string{"uri":event.ReplyToURI,"cid":event.ReplyToCID},"parent":map[string]string{"uri":event.ReplyToURI,"cid":event.ReplyToCID}}};data,_:=json.Marshal(map[string]any{"repo":a.Repo,"collection":"app.bsky.feed.post","record":record});req,_:=http.NewRequest(http.MethodPost,strings.TrimRight(a.ServiceURL,"/")+"/xrpc/com.atproto.repo.createRecord",bytes.NewReader(data));req.Header.Set("Authorization","Bearer "+a.JWT);req.Header.Set("Content-Type","application/json");resp,err:=client.Do(req);if err!=nil{return err};resp.Body.Close();if resp.StatusCode/100!=2{return fmt.Errorf("Bluesky API returned %s",resp.Status)}};return nil}
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+)
+
+type BlueskyAdapter struct {
+	ServiceURL, JWT, Repo string
+	Client                *http.Client
+}
+
+func (a BlueskyAdapter) ParseEvent(payload map[string]any) (InboundEvent, error) {
+	record := payload
+	if nested, ok := payload["record"].(map[string]any); ok {
+		record = nested
+	}
+	author, _ := payload["author"].(string)
+	if author == "" {
+		author, _ = payload["did"].(string)
+	}
+	text, ok := record["text"].(string)
+	if author == "" || !ok {
+		return InboundEvent{}, fmt.Errorf("Bluesky post has no supported content")
+	}
+	event := InboundEvent{Platform: "bluesky", UserID: author, ContentType: "text", Text: text}
+	event.ReplyToURI, _ = payload["uri"].(string)
+	event.ReplyToCID, _ = payload["cid"].(string)
+	return event, nil
+}
+
+func (a BlueskyAdapter) SendReply(event InboundEvent, reply OutboundReply) error {
+	client := a.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	for _, message := range reply.Messages {
+		record := map[string]any{"$type": "app.bsky.feed.post", "text": message.Text, "createdAt": time.Now().UTC().Format(time.RFC3339Nano)}
+		if event.ReplyToURI != "" && event.ReplyToCID != "" {
+			record["reply"] = map[string]any{"root": map[string]string{"uri": event.ReplyToURI, "cid": event.ReplyToCID}, "parent": map[string]string{"uri": event.ReplyToURI, "cid": event.ReplyToCID}}
+		}
+		if message.Type != "text" {
+			if message.MediaURL == "" {
+				return fmt.Errorf("Bluesky %s reply requires media_url", message.Type)
+			}
+			if message.Type != "image" && message.Type != "video" {
+				return fmt.Errorf("Bluesky does not support %s post embeds", message.Type)
+			}
+			media, err := client.Get(message.MediaURL)
+			if err != nil {
+				return err
+			}
+			if media.StatusCode/100 != 2 {
+				media.Body.Close()
+				return fmt.Errorf("Bluesky media download returned %s", media.Status)
+			}
+			raw, err := io.ReadAll(media.Body)
+			media.Body.Close()
+			if err != nil {
+				return err
+			}
+			req, _ := http.NewRequest(http.MethodPost, strings.TrimRight(a.ServiceURL, "/")+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(raw))
+			req.Header.Set("Authorization", "Bearer "+a.JWT)
+			req.Header.Set("Content-Type", "application/octet-stream")
+			uploadedResp, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			uploadedRaw, readErr := io.ReadAll(uploadedResp.Body)
+			uploadedResp.Body.Close()
+			if readErr != nil {
+				return readErr
+			}
+			if uploadedResp.StatusCode/100 != 2 {
+				return fmt.Errorf("Bluesky Blob API returned %s", uploadedResp.Status)
+			}
+			var uploaded struct {
+				Blob any `json:"blob"`
+			}
+			if err := json.Unmarshal(uploadedRaw, &uploaded); err != nil || uploaded.Blob == nil {
+				return fmt.Errorf("Bluesky Blob upload returned no blob")
+			}
+			if message.Type == "image" {
+				record["embed"] = map[string]any{"$type": "app.bsky.embed.images", "images": []any{map[string]any{"alt": message.Text, "image": uploaded.Blob}}}
+			} else {
+				record["embed"] = map[string]any{"$type": "app.bsky.embed.video", "video": uploaded.Blob, "alt": message.Text}
+			}
+		}
+		data, _ := json.Marshal(map[string]any{"repo": a.Repo, "collection": "app.bsky.feed.post", "record": record})
+		postReq, _ := http.NewRequest(http.MethodPost, strings.TrimRight(a.ServiceURL, "/")+"/xrpc/com.atproto.repo.createRecord", bytes.NewReader(data))
+		postReq.Header.Set("Authorization", "Bearer "+a.JWT)
+		postReq.Header.Set("Content-Type", "application/json")
+		resp, err := client.Do(postReq)
+		if err != nil {
+			return err
+		}
+		resp.Body.Close()
+		if resp.StatusCode/100 != 2 {
+			return fmt.Errorf("Bluesky API returned %s", resp.Status)
+		}
+	}
+	return nil
+}
