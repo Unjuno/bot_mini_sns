@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "scripts": {"build": "tsc", "start": "node dist/common-cli.js"},
+  "devDependencies": {"@types/node": "latest", "typescript": "latest"}
+}
