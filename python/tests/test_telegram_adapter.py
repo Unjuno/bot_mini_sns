@@ -15,7 +15,10 @@ class TelegramAdapterTests(unittest.TestCase):
         ]
         for payload, content_type in cases:
             with self.subTest(content_type=content_type):
-                self.assertEqual(adapter.parse_event(payload).content_type, content_type)
+                event = adapter.parse_event(payload)
+                self.assertEqual(event.content_type, content_type)
+                self.assertEqual(event.user_id, "1")
+                self.assertEqual(event.reply_target, "2")
 
     def test_message_method_mapping(self):
         self.assertEqual(TelegramAdapter._message_request("image", "telegram:id", ""), ("sendPhoto", "photo", "id"))

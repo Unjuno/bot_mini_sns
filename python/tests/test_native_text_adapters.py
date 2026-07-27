@@ -98,5 +98,12 @@ class NativeTextAdapterTests(unittest.TestCase):
         self.assertEqual(event.user_id, "u"); self.assertEqual(session.calls[0][1][0], "https://api.line.me/v2/bot/message/reply")
         self.assertEqual(session.calls[0][2]["json"]["replyToken"], "rt")
 
+    def test_line_media_reply_uses_native_message_types(self):
+        session = Session(); adapter = LineAdapter("token", session)
+        event = adapter.parse_event({"events": [{"replyToken": "rt", "source": {"userId": "u"}, "message": {"type": "image", "id": "m1"}}]})
+        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="image", media_url="https://cdn.test/image.jpg")]))
+        self.assertEqual(session.calls[0][2]["json"]["messages"][0]["type"], "image")
+        self.assertEqual(session.calls[0][2]["json"]["messages"][0]["originalContentUrl"], "https://cdn.test/image.jpg")
+
 
 if __name__ == "__main__": unittest.main()

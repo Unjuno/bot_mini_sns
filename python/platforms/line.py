@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 from typing import Any
 import requests
-from core.models import InboundEvent, OutboundReply
+from core.models import InboundEvent, OutboundMessage, OutboundReply
 from .base import PlatformAdapter
 from .catalog import PLATFORM_CATALOG
 
@@ -18,5 +18,21 @@ class LineAdapter(PlatformAdapter):
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
         if not event.reply_token:
             raise ValueError("LINE reply_token is required for replies")
-        messages = [{"type": "text", "text": message.text or message.media_url or ""} for message in reply.messages[:5]]
+        messages = [self._message_payload(message) for message in reply.messages[:5]]
         response = self.session.post("https://api.line.me/v2/bot/message/reply", headers={"Authorization": f"Bearer {self.access_token}"}, json={"replyToken": event.reply_token, "messages": messages}, timeout=30); response.raise_for_status()
+
+    @staticmethod
+    def _message_payload(message: OutboundMessage) -> dict[str, Any]:
+        if message.type == "text":
+            return {"type": "text", "text": message.text or message.media_url or ""}
+        if not message.media_url:
+            raise ValueError(f"LINE {message.type} reply requires media_url")
+        if message.type == "image":
+            return {"type": "image", "originalContentUrl": message.media_url, "previewImageUrl": message.media_url}
+        if message.type == "audio":
+            return {"type": "audio", "originalContentUrl": message.media_url, "duration": 1000}
+        if message.type == "video":
+            return {"type": "video", "originalContentUrl": message.media_url, "previewImageUrl": message.media_url}
+        if message.type == "file":
+            return {"type": "file", "originalContentUrl": message.media_url, "fileName": message.text or "attachment"}
+        raise ValueError(f"Unsupported LINE content type: {message.type}")

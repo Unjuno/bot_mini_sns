@@ -26,8 +26,13 @@ class TelegramAdapter(PlatformAdapter):
         message = payload.get("message") or payload.get("edited_message")
         if not message or not message.get("from"):
             raise ValueError("Telegram update has no supported message")
-        user_id = str(message["chat"]["id"])
-        common = {"platform": "telegram", "user_id": user_id}
+        if not message.get("chat") or not message["chat"].get("id"):
+            raise ValueError("Telegram message has no chat")
+        common = {
+            "platform": "telegram",
+            "user_id": str(message["from"]["id"]),
+            "reply_target": str(message["chat"]["id"]),
+        }
         if message.get("text") is not None:
             return InboundEvent(**common, content_type="text", text=message["text"])
         if message.get("photo"):
@@ -42,7 +47,7 @@ class TelegramAdapter(PlatformAdapter):
             method, field, value = self._message_request(message.type, message.media_url, message.text)
             response = self.session.post(
                 f"{self.base_url}/{method}",
-                json={"chat_id": event.user_id, field: value, **({"caption": message.text} if message.text and field != "text" else {})},
+                json={"chat_id": event.reply_target or event.user_id, field: value, **({"caption": message.text} if message.text and field != "text" else {})},
                 timeout=30,
             )
             response.raise_for_status()
