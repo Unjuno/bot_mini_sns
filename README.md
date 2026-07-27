@@ -176,6 +176,7 @@ GitHub Actionsでも同じ4言語の検証を実行します。外部サービ�
 - [docs/implementation-languages.md](docs/implementation-languages.md)：言語別実装方針
 - [docs/content-batch-spec.md](docs/content-batch-spec.md)：返信コンテンツの仕様
 - [docs/configuration.md](docs/configuration.md)：環境変数・設定ファイル・デプロイ設定
+- [docs/development.md](docs/development.md)：開発環境・検証・実装境界
 - [docs/public-release-checklist.md](docs/public-release-checklist.md)：公開前の確認項目
 
 ## ライセンス・公開範囲
