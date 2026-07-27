@@ -23,9 +23,8 @@ from linebot.models import (
     VideoSendMessage,
 )
 
-load_dotenv(override=True)
-
 ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT.parent / ".env", override=True)
 def project_path(value, default):
     path = Path(value or default)
     return path if path.is_absolute() else ROOT / path

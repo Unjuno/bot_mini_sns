@@ -11,3 +11,4 @@ python/__pycache__/
 python/uploaded_media/
 python/sns_bot.db
 typescript/node_modules/
+typescript/dist/

@@ -99,6 +99,8 @@ go run ./cmd/server
 
 `POST http://127.0.0.1:8080/webhook`へ共通イベントJSONを送信します。
 
+各言語版のWebhookは、外部サービスのWebhook形式を共通イベントJSONへ変換した後段で利用します。Pythonの`app.py`はLINEの署名付きWebhook本体、`python/platforms/`は各サービスのアダプターです。
+
 共通イベントの例：
 
 ```json
