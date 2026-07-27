@@ -4,6 +4,9 @@ uploaded_media/
 uploaded_images/
 __pycache__/
 sns_bot.db
+*.db
+*.sqlite
+*.sqlite3
 .pytest_cache/
 *.pyc
 python/.venv/
@@ -13,7 +16,10 @@ python/sns_bot.db
 python/adapter_posts.db
 python/adapter-*.db
 php/posts.json
+posts.json
 typescript/posts.json
 go/posts.json
+uploaded_media/
+uploaded_images/
 typescript/node_modules/
 typescript/dist/
