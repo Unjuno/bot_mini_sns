@@ -38,7 +38,7 @@ PORT=5000
 
 Renderなどでこの経路を公開する場合のStart Commandは`gunicorn adapter_app:app`です。LINE専用の`app.py`を使う場合は`gunicorn app:app`にします。`.env.example`はリポジトリルートに1つだけあり、`python`から起動しても同じファイルを読み込みます。
 
-PHP版は`PHP_POSTS_FILE`（既定値：`php/bin/posts.json`）へ投稿履歴を保存します。公開ホスティングでは、このパスに書き込み権限があることを確認してください。
+PHP版は`PHP_DATABASE_PATH`（既定値：`php/bin/posts.sqlite`）へSQLiteで投稿履歴を保存します。公開ホスティングでは、このパスに書き込み権限があることを確認してください。
 
 起動前に`python check_setup.py --platform <platform>`を実行すると、必要な環境変数の不足を確認できます。アカウントなしの確認は`--offline`を付けます。
 

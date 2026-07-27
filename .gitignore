@@ -16,6 +16,8 @@ python/sns_bot.db
 python/adapter_posts.db
 python/adapter-*.db
 php/posts.json
+php/*.sqlite
+php/*.sqlite3
 posts.json
 typescript/posts.json
 go/posts.json

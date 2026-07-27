@@ -40,6 +40,17 @@ try { process_event(['platform' => 'line', 'user_id' => '', 'content_type' => 't
 try { process_event(['platform' => 'line', 'user_id' => 'u', 'content_type' => 'unknown'], $sharedPosts); throw new RuntimeException('invalid content type accepted'); } catch (InvalidArgumentException) {}
 echo "ok common core validation\n";
 
+$sqlitePath = tempnam(sys_get_temp_dir(), 'mini-sns-');
+$sqlite = new PDO('sqlite:'.$sqlitePath);
+$sqlite->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$sqlite->exec('CREATE TABLE platform_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL, text TEXT, media_url TEXT, created_at TEXT NOT NULL)');
+process_event_sqlite($sqlite, ['platform' => 'line', 'user_id' => 'u', 'content_type' => 'text', 'text' => 'sqlite']);
+$sqliteReply = process_event_sqlite($sqlite, ['platform' => 'telegram', 'user_id' => 'u2', 'content_type' => 'text', 'text' => 'shared']);
+if (array_column($sqliteReply['messages'], 'text') !== ['shared', 'sqlite']) throw new RuntimeException('SQLite persistence contract failed');
+$sqlite = null;
+unlink($sqlitePath);
+echo "ok SQLite persistence\n";
+
 $signedBody = '{"events":[]}';
 $base64Signature = base64_encode(hash_hmac('sha256', $signedBody, 'secret', true));
 if (!verify_hmac_sha256($signedBody, 'secret', 'Bearer '.$base64Signature, 'Bearer ')) throw new RuntimeException('base64 signature contract failed');

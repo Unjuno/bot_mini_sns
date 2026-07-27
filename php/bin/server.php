@@ -7,14 +7,12 @@ foreach (glob(__DIR__.'/../src/{http,platforms,telegram,discord,mastodon,misskey
     require_once $adapterFile;
 }
 
-$storePath = getenv('PHP_POSTS_FILE') ?: (__DIR__ . '/posts.json');
-$posts = [];
-if (is_file($storePath)) {
-    $stored = json_decode((string) file_get_contents($storePath), true);
-    if (is_array($stored)) {
-        $posts = $stored;
-    }
-}
+$databasePath = getenv('PHP_DATABASE_PATH') ?: (__DIR__ . '/posts.sqlite');
+$directory = dirname($databasePath);
+if (!is_dir($directory)) mkdir($directory, 0775, true);
+$database = new PDO('sqlite:'.$databasePath);
+$database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$database->exec('CREATE TABLE IF NOT EXISTS platform_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL, text TEXT, media_url TEXT, created_at TEXT NOT NULL)');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -31,12 +29,7 @@ try {
     }
     $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
     [$event, $sendReply] = runtime_adapter($payload);
-    $reply = process_event($event, $posts, 5);
-    $directory = dirname($storePath);
-    if (!is_dir($directory)) {
-        mkdir($directory, 0775, true);
-    }
-    file_put_contents($storePath, json_encode($posts, JSON_THROW_ON_ERROR), LOCK_EX);
+    $reply = process_event_sqlite($database, $event, 5);
     if ($sendReply !== null) {
         $sendReply($event, $reply);
     }
