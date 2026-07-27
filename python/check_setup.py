@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from platforms.catalog import PRODUCTION_READY
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT.parent / ".env", override=False)
@@ -27,7 +28,7 @@ REQUIRED = {
     "whatsapp": ("WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"),
     "instagram": ("INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_ACCOUNT_ID"),
     "teams": ("TEAMS_BOT_TOKEN", "TEAMS_SERVICE_URL"),
-    "kakaotalk": ("KAKAOTALK_CALLBACK_URL",),
+    "kakaotalk": (),
     "twitch": ("TWITCH_ACCESS_TOKEN", "TWITCH_CLIENT_ID", "TWITCH_BROADCASTER_ID", "TWITCH_SENDER_ID"),
     "reddit": ("REDDIT_ACCESS_TOKEN",),
 }
@@ -45,6 +46,13 @@ def main() -> int:
     if args.offline:
         print(f"OK: {platform} offline configuration")
         return 0
+    if not PRODUCTION_READY.get(platform, False):
+        print(
+            f"Not ready: {platform} is available for offline testing only; "
+            "its production webhook/API path is not verified",
+            file=sys.stderr,
+        )
+        return 1
     missing = [name for name in REQUIRED[platform] if not os.getenv(name, "").strip()]
     if missing:
         print(f"Missing for {platform}: {', '.join(missing)}", file=sys.stderr)

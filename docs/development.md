@@ -54,7 +54,7 @@ php -l bin/server.php
 - `python/adapter_app.py`：Pythonのプラットフォームアダプター共通Webhook
 - `python/core/`：保存・同種コンテンツ返信の共通ロジック
 - `python/platforms/`：プラットフォーム固有の変換と送信
-- `php/`、`typescript/`、`go/`：共通JSONイベントを受ける各言語版Webhook
+- `php/`、`typescript/`、`go/`：共通JSONイベントと17プラットフォームのWebhookを扱う各言語版Webhook
 - `docs/core-spec.md`：現行仕様の正本
 
 固定フローを変更する場合は、仕様・Pythonテスト・各言語版の共通契約を同時に更新します。翻訳、広告、検索、Push通知は現行仕様の対象外です。

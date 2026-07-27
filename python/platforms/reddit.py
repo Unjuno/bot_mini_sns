@@ -19,3 +19,7 @@ class RedditAdapter(PlatformAdapter):
         if not thing_id: raise ValueError("REDDIT_THING_ID is required for replies")
         for message in reply.messages:
             response = self.session.post("https://oauth.reddit.com/api/comment", headers={"Authorization": f"Bearer {self.token}", "User-Agent": "mini-sns-bot/1.0"}, data={"api_type": "json", "thing_id": thing_id, "text": message.text or message.media_url or ""}, timeout=30); response.raise_for_status()
+            result = response.json()
+            errors = result.get("json", {}).get("errors", []) if isinstance(result, dict) else []
+            if errors:
+                raise RuntimeError(f"Reddit API error: {errors}")

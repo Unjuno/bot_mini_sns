@@ -18,8 +18,8 @@ from .instagram import InstagramAdapter
 from .teams import TeamsAdapter
 from .twitch import TwitchAdapter
 from .reddit import RedditAdapter
-from .kakaotalk import KakaoTalkAdapter
 from .line import LineAdapter
+from .catalog import PRODUCTION_READY
 
 
 LIVE_ADAPTERS = {
@@ -39,7 +39,6 @@ LIVE_ADAPTERS = {
     "teams": TeamsAdapter,
     "twitch": TwitchAdapter,
     "reddit": RedditAdapter,
-    "kakaotalk": KakaoTalkAdapter,
 }
 
 CONFIGURED_PLATFORMS = {
@@ -50,6 +49,12 @@ def create_adapter(platform: str, *, offline: bool = False, **kwargs) -> Platfor
     """Create a live adapter or an offline contract adapter for any catalog entry."""
     if offline:
         return MockPlatformAdapter(platform)
+    if platform not in PRODUCTION_READY:
+        raise NotImplementedError(f"Unknown platform: {platform}")
+    if not PRODUCTION_READY[platform]:
+        raise NotImplementedError(
+            f"{platform} is available offline, but its production webhook/API path is not verified"
+        )
     if platform in CONFIGURED_PLATFORMS:
         return ConfiguredHTTPAdapter(platform, **kwargs)
     adapter_type = LIVE_ADAPTERS.get(platform)

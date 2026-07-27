@@ -12,6 +12,8 @@ class DiscordAdapterTests(unittest.TestCase):
         image = self.adapter.parse_event({"t": "MESSAGE_CREATE", "d": {"channel_id": "c", "author": {"id": "u"}, "attachments": [{"content_type": "image/png", "url": "https://cdn/image.png"}]}})
         self.assertEqual(text.content_type, "text")
         self.assertEqual(image.content_type, "image")
+        self.assertEqual(text.user_id, "u")
+        self.assertEqual(text.reply_target, "c")
 
     def test_content_type_fallbacks(self):
         self.assertEqual(self.adapter._content_type("video/mp4", "x.mp4"), "video")

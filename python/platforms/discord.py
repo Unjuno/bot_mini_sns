@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import json
+from urllib.parse import urlparse
 from typing import Any
 
 import requests
@@ -28,7 +30,11 @@ class DiscordAdapter(PlatformAdapter):
         message = payload.get("d", payload)
         if not message.get("channel_id") or not message.get("author", {}).get("id"):
             raise ValueError("Discord message has no channel or author")
-        common = {"platform": "discord", "user_id": str(message["channel_id"])}
+        common = {
+            "platform": "discord",
+            "user_id": str(message["author"]["id"]),
+            "reply_target": str(message["channel_id"]),
+        }
         if message.get("content"):
             return InboundEvent(**common, content_type="text", text=message["content"])
         attachments = message.get("attachments") or []
@@ -39,22 +45,40 @@ class DiscordAdapter(PlatformAdapter):
         return InboundEvent(**common, content_type=content_type, media_url=attachment.get("url"))
 
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
-        url = f"{self.base_url}/channels/{event.user_id}/messages"
+        if not event.reply_target:
+            raise ValueError("Discord reply_target (channel_id) is required")
+        url = f"{self.base_url}/channels/{event.reply_target}/messages"
         headers = {"Authorization": f"Bot {self.token}"}
         messages = reply.messages[: self.capabilities.max_reply_items or len(reply.messages)]
-        body: dict[str, Any] = {"allowed_mentions": {"parse": []}}
         if all(message.type == "text" for message in messages):
-            body["content"] = "\n\n".join(message.text for message in messages)[:2000]
-        else:
-            body["content"] = ""
-            body["embeds"] = [
-                {"image": {"url": message.media_url}}
-                if message.type == "image" and message.media_url
-                else {"description": message.media_url or message.text}
-                for message in messages
-            ][:10]
-        response = self.session.post(url, headers=headers, json=body, timeout=30)
-        response.raise_for_status()
+            response = self.session.post(
+                url, headers=headers,
+                json={"allowed_mentions": {"parse": []}, "content": "\n\n".join(message.text for message in messages)[:2000]},
+                timeout=30,
+            )
+            response.raise_for_status()
+            return
+
+        # Discord accepts remote URLs in embeds, but that does not upload audio,
+        # video, or arbitrary files. Download and attach those media items so the
+        # reply has the same semantics as the common core message.
+        for message in messages:
+            if not message.media_url:
+                raise ValueError(f"Discord {message.type} reply requires media_url")
+            media = self.session.get(message.media_url, timeout=30)
+            media.raise_for_status()
+            filename = os.path.basename(urlparse(message.media_url).path) or f"attachment.{message.type}"
+            response = self.session.post(
+                url,
+                headers=headers,
+                data={"payload_json": json.dumps({
+                    "allowed_mentions": {"parse": []},
+                    "content": message.text or "",
+                })},
+                files={"files[0]": (filename, media.content, media.headers.get("Content-Type", "application/octet-stream"))},
+                timeout=30,
+            )
+            response.raise_for_status()
 
     @staticmethod
     def _content_type(content_type: str, filename: str) -> str:

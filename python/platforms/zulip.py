@@ -16,8 +16,21 @@ class ZulipAdapter(PlatformAdapter):
         self.session = session or requests.Session()
     def parse_event(self, payload: Any, headers=None) -> InboundEvent:
         message = payload.get("message", payload)
-        return InboundEvent(platform="zulip", user_id=str(message.get("sender_email") or message.get("sender_id")), content_type="text", text=message.get("content") or message.get("text"))
+        user_id = message.get("sender_email") or message.get("sender_id")
+        if not user_id:
+            raise ValueError("Zulip message has no sender")
+        if message.get("type") == "stream":
+            stream = message.get("display_recipient")
+            subject = message.get("subject")
+            if not stream or not subject:
+                raise ValueError("Zulip stream message has no stream or subject")
+            return InboundEvent(platform="zulip", user_id=str(user_id), reply_target=str(stream), reply_to_id=str(subject), reply_mode="stream", content_type="text", text=message.get("content") or message.get("text"))
+        return InboundEvent(platform="zulip", user_id=str(user_id), reply_mode="direct", content_type="text", text=message.get("content") or message.get("text"))
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
         for message in reply.messages:
-            response = self.session.post(f"{self.base_url}/api/v1/messages", data={"type": "direct", "to": event.user_id, "content": message.text or message.media_url or ""}, auth=(self.email, self.api_key), timeout=30)
+            if event.reply_mode == "stream":
+                data = {"type": "stream", "to": event.reply_target, "subject": event.reply_to_id, "content": message.text or message.media_url or ""}
+            else:
+                data = {"type": "direct", "to": event.user_id, "content": message.text or message.media_url or ""}
+            response = self.session.post(f"{self.base_url}/api/v1/messages", data=data, auth=(self.email, self.api_key), timeout=30)
             response.raise_for_status()

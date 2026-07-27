@@ -3,10 +3,11 @@
 調査日：2026年7月26日（日本時間）
 
 各プラットフォームについて、料金、Botの利用方法、固定フローへの適合性を個別に整理する。
+調査内容と実装の照合結果は [プラットフォーム調査・実装照合](../platform-implementation-audit.md) を参照する。
 
 ## 実装ステータス
 
-全17プラットフォームは `python/platforms/catalog.py` の共通契約に登録され、`create_adapter(name, offline=True)` で認証なしの検証ができます。Pythonには各プラットフォームの受信形式・返信APIに対応するアダプターを実装していますが、実サービス利用には各社のBot登録、Webhook公開、権限設定、認証情報が必要です。添付ファイルの送受信可否やAPIの制約はプラットフォームごとに異なります。
+全17プラットフォームは `python/platforms/catalog.py` の共通契約に登録され、`create_adapter(name, offline=True)` で認証なしの検証ができます。Pythonには各プラットフォームの受信・返信経路があり、他の3言語にも同じプラットフォーム群のアダプターがあります。ただし、全サービスで全メディア種別の実サービス送受信が完了しているわけではありません。実装状況は照合表を確認してください。
 
 ### 検証方法
 
@@ -27,16 +28,16 @@ python -m unittest discover -s tests -v
 | Discord | `DISCORD_BOT_TOKEN` |
 | Zulip | `ZULIP_BASE_URL`, `ZULIP_EMAIL`, `ZULIP_API_KEY` |
 | Matrix | `MATRIX_BASE_URL`, `MATRIX_ACCESS_TOKEN`, `MATRIX_ROOM_ID` |
-| Slack | `SLACK_BOT_TOKEN` |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` |
 | Google Chat | `GOOGLE_CHAT_ACCESS_TOKEN`, `GOOGLE_CHAT_SPACE`（必要時） |
 | Viber | `VIBER_AUTH_TOKEN` |
 | Mastodon | `MASTODON_BASE_URL`, `MASTODON_ACCESS_TOKEN` |
 | Misskey | `MISSKEY_BASE_URL`, `MISSKEY_TOKEN` |
 | Bluesky | `BLUESKY_ACCESS_JWT`, `BLUESKY_REPO` |
-| WhatsApp | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` |
+| WhatsApp | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` |
 | Instagram | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_ACCOUNT_ID` |
 | Teams | `TEAMS_BOT_TOKEN`, `TEAMS_SERVICE_URL` |
-| KakaoTalk | `KAKAOTALK_CALLBACK_URL` |
+| KakaoTalk | 現在の公式Channel webhookは追加・ブロック通知のみのため、投稿Bot用の実サービス設定は未提供 |
 | Twitch | `TWITCH_ACCESS_TOKEN`, `TWITCH_CLIENT_ID`, `TWITCH_BROADCASTER_ID`, `TWITCH_SENDER_ID` |
 | Reddit | `REDDIT_ACCESS_TOKEN`、返信対象に`REDDIT_THING_ID` |
 

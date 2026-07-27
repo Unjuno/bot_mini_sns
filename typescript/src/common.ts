@@ -12,6 +12,12 @@ export type InboundEvent = {
   content_type: ContentType;
   text?: string;
   media_url?: string | null;
+  reply_token?: string | null;
+  reply_target?: string | null;
+  reply_to_id?: string | null;
+  reply_to_uri?: string | null;
+  reply_to_cid?: string | null;
+  reply_mode?: string | null;
 };
 
 export type OutboundReply = {
@@ -24,9 +30,7 @@ export function processEvent(event: InboundEvent, posts: InboundEvent[], limit =
   }
   posts.push(event);
   const selected = posts
-    .filter((post) => post.platform === event.platform
-      && post.user_id === event.user_id
-      && post.content_type === event.content_type)
+    .filter((post) => post.content_type === event.content_type)
     .slice(-limit)
     .reverse();
   return {

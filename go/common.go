@@ -1,5 +1,7 @@
 package common
 
+import "fmt"
+
 var SupportedPlatforms = []string{
 	"line", "telegram", "discord", "zulip", "matrix", "slack", "google_chat",
 	"viber", "mastodon", "misskey", "bluesky", "whatsapp", "instagram", "teams",
@@ -21,6 +23,12 @@ type InboundEvent struct {
 	ContentType string `json:"content_type"`
 	Text        string `json:"text,omitempty"`
 	MediaURL    string `json:"media_url,omitempty"`
+	ReplyToken  string `json:"reply_token,omitempty"`
+	ReplyTarget string `json:"reply_target,omitempty"`
+	ReplyToID   string `json:"reply_to_id,omitempty"`
+	ReplyToURI  string `json:"reply_to_uri,omitempty"`
+	ReplyToCID  string `json:"reply_to_cid,omitempty"`
+	ReplyMode   string `json:"reply_mode,omitempty"`
 }
 
 type OutboundMessage struct {
@@ -33,17 +41,20 @@ type OutboundReply struct {
 	Messages []OutboundMessage `json:"messages"`
 }
 
-func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) OutboundReply {
+func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) (OutboundReply, error) {
 	if !isSupportedPlatform(event.Platform) {
-		return OutboundReply{}
+		return OutboundReply{}, fmt.Errorf("unsupported platform: %s", event.Platform)
+	}
+	if event.UserID == "" || event.ContentType == "" {
+		return OutboundReply{}, fmt.Errorf("platform, user_id, and content_type are required")
 	}
 	*posts = append(*posts, event)
 	result := OutboundReply{}
 	for i := len(*posts) - 1; i >= 0 && len(result.Messages) < limit; i-- {
 		post := (*posts)[i]
-		if post.Platform == event.Platform && post.UserID == event.UserID && post.ContentType == event.ContentType {
+		if post.ContentType == event.ContentType {
 			result.Messages = append(result.Messages, OutboundMessage{Type: post.ContentType, Text: post.Text, MediaURL: post.MediaURL})
 		}
 	}
-	return result
+	return result, nil
 }
