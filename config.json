@@ -1,9 +1,0 @@
-{
-  "features": {
-    "text_post": true,
-    "image_post": true
-  },
-  "media": {
-    "enabled_types": ["image", "audio", "video", "file"]
-  }
-}

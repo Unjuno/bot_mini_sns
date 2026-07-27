@@ -74,7 +74,6 @@ my_first_bot/                  # リポジトリルート（言語非依存）
 │   └── requirements.txt       #   Python依存パッケージ
 ├── node/                      # (将来) Node.js実装
 ├── rust/                      # (将来) Rust実装
-├── config.example.json        # 全言語共通の設定例
 ├── .env.example               # 環境変数テンプレート
 ├── README.md
 └── .gitignore
