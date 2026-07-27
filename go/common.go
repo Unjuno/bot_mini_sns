@@ -26,6 +26,8 @@ type InboundEvent struct {
 	ReplyToken  string `json:"reply_token,omitempty"`
 	ReplyTarget string `json:"reply_target,omitempty"`
 	ReplyToID   string `json:"reply_to_id,omitempty"`
+	ReplyToURI  string `json:"reply_to_uri,omitempty"`
+	ReplyToCID  string `json:"reply_to_cid,omitempty"`
 }
 
 type OutboundMessage struct {
