@@ -1,6 +1,11 @@
 package common
 
-import "testing"
+import (
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+)
 
 func TestImplementedAdaptersParseRepresentativeEvents(t *testing.T) {
 	cases := []struct {
@@ -70,5 +75,79 @@ func TestImplementedAdaptersParseRepresentativeEvents(t *testing.T) {
 				t.Fatalf("got %+v", event)
 			}
 		})
+	}
+}
+
+type adapterRoundTripper struct{}
+
+func (adapterRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"ok":true,"result":"success","data":[{"is_sent":true}]}`)), Header: make(http.Header)}, nil
+}
+
+func TestImplementedAdaptersSendTextThroughHTTPMock(t *testing.T) {
+	client := &http.Client{Transport: adapterRoundTripper{}}
+	reply := OutboundReply{Messages: []OutboundMessage{{Type: "text", Text: "reply"}}}
+	tests := []struct {
+		name string
+		send func() error
+	}{
+		{"line", func() error {
+			return (LineAdapter{AccessToken: "token", Client: client}).SendReply(InboundEvent{ReplyToken: "r"}, reply)
+		}},
+		{"telegram", func() error {
+			return (TelegramAdapter{Token: "token", Client: client}).SendReply(InboundEvent{ReplyTarget: "c"}, reply)
+		}},
+		{"discord", func() error {
+			return (DiscordAdapter{Token: "token", Client: client}).SendReply(InboundEvent{ReplyTarget: "c"}, reply)
+		}},
+		{"mastodon", func() error {
+			return (MastodonAdapter{BaseURL: "https://m.test", Token: "token", Client: client}).SendReply(InboundEvent{ReplyToID: "s"}, reply)
+		}},
+		{"misskey", func() error {
+			return (MisskeyAdapter{BaseURL: "https://m.test", Token: "token", Client: client}).SendReply(InboundEvent{ReplyToID: "n"}, reply)
+		}},
+		{"bluesky", func() error {
+			return (BlueskyAdapter{ServiceURL: "https://b.test", JWT: "jwt", Repo: "did:u", Client: client}).SendReply(InboundEvent{}, reply)
+		}},
+		{"slack", func() error {
+			return (SlackAdapter{Token: "token", Client: client}).SendReply(InboundEvent{ReplyTarget: "c"}, reply)
+		}},
+		{"matrix", func() error {
+			return (MatrixAdapter{BaseURL: "https://m.test", Token: "token", Client: client}).SendReply(InboundEvent{ReplyTarget: "!r:test"}, reply)
+		}},
+		{"whatsapp", func() error {
+			return (WhatsAppAdapter{Token: "token", PhoneNumberID: "phone", Client: client}).SendReply(InboundEvent{UserID: "u"}, reply)
+		}},
+		{"viber", func() error {
+			return (ViberAdapter{Token: "token", Client: client}).SendReply(InboundEvent{UserID: "u"}, reply)
+		}},
+		{"zulip", func() error {
+			return (ZulipAdapter{BaseURL: "https://z.test", Email: "u", APIKey: "k", Client: client}).SendReply(InboundEvent{UserID: "u", ReplyMode: "direct"}, reply)
+		}},
+		{"google_chat", func() error {
+			return (GoogleChatAdapter{Token: "token", Client: client}).SendReply(InboundEvent{ReplyTarget: "spaces/1"}, reply)
+		}},
+		{"teams", func() error {
+			return (TeamsAdapter{Token: "token", ServiceURL: "https://t.test", Client: client}).SendReply(InboundEvent{ReplyTarget: "c"}, reply)
+		}},
+		{"instagram", func() error {
+			return (InstagramAdapter{Token: "token", AccountID: "account", Client: client}).SendReply(InboundEvent{UserID: "u"}, reply)
+		}},
+		{"reddit", func() error {
+			return (RedditAdapter{Token: "token", Client: client}).SendReply(InboundEvent{MediaURL: "t1_x"}, reply)
+		}},
+		{"twitch", func() error {
+			return (TwitchAdapter{Token: "token", ClientID: "c", BroadcasterID: "b", SenderID: "s", Client: client}).SendReply(InboundEvent{}, reply)
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.send(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	if rendered := (KakaoTalkAdapter{}).RenderReply(reply); rendered["version"] != "2.0" {
+		t.Fatalf("unexpected Kakao response: %#v", rendered)
 	}
 }
