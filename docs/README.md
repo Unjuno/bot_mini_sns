@@ -30,6 +30,7 @@ Python版では対象17プラットフォームのアダプターを実装済み
 | [content-batch-spec.md](content-batch-spec.md) | 同種コンテンツの直近一括返信とプラットフォーム差分 |
 | [platforms/README.md](platforms/README.md) | プラットフォーム別の料金・使い方・適合性 |
 | [user-flow.md](user-flow.md) | 利用者の操作フロー |
+| [configuration.md](configuration.md) | 環境変数・設定ファイル・デプロイ設定 |
 
 ## 実装設計（2026-07-26 確定）
  

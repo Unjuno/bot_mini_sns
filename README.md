@@ -155,6 +155,7 @@ GitHub Actionsでも同じ4言語の検証を実行します。外部サービ�
 - [docs/platforms/README.md](docs/platforms/README.md)：プラットフォーム別仕様
 - [docs/implementation-languages.md](docs/implementation-languages.md)：言語別実装方針
 - [docs/content-batch-spec.md](docs/content-batch-spec.md)：返信コンテンツの仕様
+- [docs/configuration.md](docs/configuration.md)：環境変数・設定ファイル・デプロイ設定
 
 ## ライセンス・公開範囲
 
