@@ -30,3 +30,31 @@ test("every implemented TypeScript adapter parses a representative webhook", () 
   }
   assert.ok(supportedPlatforms.includes("kakaotalk"));
 });
+
+test("every TypeScript adapter sends a text reply through the HTTP seam", async () => {
+  const calls: string[] = [];
+  const http = async (url: string, init: RequestInit): Promise<Response> => {
+    calls.push(`${init.method ?? "GET"} ${url}`);
+    return new Response(JSON.stringify({ ok: true, result: "success", data: [{ is_sent: true }] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const reply = { messages: [{ type: "text" as const, text: "reply", media_url: null }] };
+  await new LineAdapter("token", http).sendReply({ platform: "line", user_id: "u", content_type: "text", reply_token: "r" }, reply);
+  await new TelegramAdapter("token", http).sendReply({ platform: "telegram", user_id: "u", content_type: "text", reply_target: "c" }, reply);
+  await new DiscordAdapter("token", http).sendReply({ platform: "discord", user_id: "u", content_type: "text", reply_target: "c" }, reply);
+  await new MastodonAdapter("https://m.test", "token", http).sendReply({ platform: "mastodon", user_id: "u", content_type: "text", reply_to_id: "s" }, reply);
+  await new MisskeyAdapter("https://m.test", "token", http).sendReply({ platform: "misskey", user_id: "u", content_type: "text", reply_to_id: "n" }, reply);
+  await new BlueskyAdapter("https://b.test", "jwt", "did:u", http).sendReply({ platform: "bluesky", user_id: "u", content_type: "text" }, reply);
+  await new SlackAdapter("token", http).sendReply({ platform: "slack", user_id: "u", content_type: "text", reply_target: "c" }, reply);
+  await new MatrixAdapter("https://m.test", "token", http).sendReply({ platform: "matrix", user_id: "u", content_type: "text", reply_target: "!r:test" }, reply);
+  await new WhatsAppAdapter("token", "phone", http).sendReply({ platform: "whatsapp", user_id: "u", content_type: "text" }, reply);
+  await new ViberAdapter("token", http).sendReply({ platform: "viber", user_id: "u", content_type: "text" }, reply);
+  await new ZulipAdapter("https://z.test", "u", "k", http).sendReply({ platform: "zulip", user_id: "u", content_type: "text", reply_mode: "direct" }, reply);
+  await new GoogleChatAdapter("token", http).sendReply({ platform: "google_chat", user_id: "u", content_type: "text", reply_target: "spaces/1" }, reply);
+  await new TeamsAdapter("token", "https://t.test", http).sendReply({ platform: "teams", user_id: "u", content_type: "text", reply_target: "c" }, reply);
+  await new InstagramAdapter("token", "account", http).sendReply({ platform: "instagram", user_id: "u", content_type: "text" }, reply);
+  await new RedditAdapter("token", http).sendReply({ platform: "reddit", user_id: "u", content_type: "text", media_url: "t1_x" }, reply);
+  await new TwitchAdapter("t", "c", "b", "s", http).sendReply({ platform: "twitch", user_id: "u", content_type: "text" }, reply);
+  const kakao = new KakaoTalkAdapter().renderReply(reply);
+  assert.equal(kakao.version, "2.0");
+  assert.equal(calls.length, 16);
+});
