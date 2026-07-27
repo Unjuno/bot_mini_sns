@@ -16,6 +16,9 @@ from .viber import ViberAdapter
 from .whatsapp import WhatsAppAdapter
 from .instagram import InstagramAdapter
 from .teams import TeamsAdapter
+from .twitch import TwitchAdapter
+from .reddit import RedditAdapter
+from .kakaotalk import KakaoTalkAdapter
 
 
 LIVE_ADAPTERS = {
@@ -33,10 +36,12 @@ LIVE_ADAPTERS = {
     "whatsapp": WhatsAppAdapter,
     "instagram": InstagramAdapter,
     "teams": TeamsAdapter,
+    "twitch": TwitchAdapter,
+    "reddit": RedditAdapter,
+    "kakaotalk": KakaoTalkAdapter,
 }
 
 CONFIGURED_PLATFORMS = {
-    "kakaotalk", "twitch", "reddit",
 }
 
 

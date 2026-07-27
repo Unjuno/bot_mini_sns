@@ -9,6 +9,9 @@ from platforms.viber import ViberAdapter
 from platforms.whatsapp import WhatsAppAdapter
 from platforms.instagram import InstagramAdapter
 from platforms.teams import TeamsAdapter
+from platforms.twitch import TwitchAdapter
+from platforms.reddit import RedditAdapter
+from platforms.kakaotalk import KakaoTalkAdapter
 
 
 class Response:
@@ -75,6 +78,18 @@ class NativeTextAdapterTests(unittest.TestCase):
             if old is None: os.environ.pop("TEAMS_SERVICE_URL", None)
             else: os.environ["TEAMS_SERVICE_URL"] = old
         self.assertEqual(session.calls[0][0], "post")
+
+    def test_twitch_and_reddit_events(self):
+        twitch = TwitchAdapter("token", "client", "broadcaster", "sender", Session())
+        self.assertEqual(twitch.parse_event({"event": {"chatter_user_id": "u", "message": "hello"}}).user_id, "u")
+        reddit = RedditAdapter("token", Session())
+        self.assertEqual(reddit.parse_event({"data": {"author": {"name": "u"}, "body": "hello", "name": "t1_x"}}).media_url, "t1_x")
+
+    def test_kakao_event_and_reply(self):
+        session = Session(); adapter = KakaoTalkAdapter("https://kakao.test", session)
+        event = adapter.parse_event({"userRequest": {"user": {"id": "u"}, "utterance": "hello"}})
+        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        self.assertEqual(event.user_id, "u")
 
 
 if __name__ == "__main__": unittest.main()
