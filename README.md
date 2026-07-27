@@ -132,6 +132,8 @@ php -l src/common.php
 php -l bin/server.php
 ```
 
+GitHub Actionsでも同じ4言語の検証を実行します。外部サービスのアクセストークンはCIへ登録せず、ユニットテストと共通イベント検証のみを行います。
+
 ## ドキュメント
 
 - [docs/core-spec.md](docs/core-spec.md)：MVP本体仕様
