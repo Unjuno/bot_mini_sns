@@ -109,7 +109,7 @@ npm run build
 npm start
 ```
 
-`POST http://127.0.0.1:3000`へ共通イベントJSONを送信します。
+`POST http://127.0.0.1:3000`へ共通イベントJSONを送信します。TypeScriptサーバーはPOSTされたパスを問わず受信します。
 
 ### Go
 

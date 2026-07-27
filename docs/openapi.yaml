@@ -2,7 +2,11 @@ openapi: 3.0.3
 info:
   title: Common Micro SNS Interface
   version: 0.1.0
-  description: Common HTTP/JSON contract for platform adapters.
+  description: >-
+    Common HTTP/JSON contract for platform adapters. The canonical operation is
+    /events; language examples expose the same operation at their documented
+    local paths (Python adapter_app /webhook, PHP /server.php, TypeScript /,
+    and Go /webhook).
 paths:
   /events:
     post:
