@@ -10,8 +10,8 @@ class PlatformRegistryTests(unittest.TestCase):
             with self.subTest(platform=platform):
                 self.assertEqual(create_adapter(platform, offline=True).capabilities.name, platform)
 
-    def test_live_unimplemented_platform_is_explicit(self):
-        with self.assertRaises(NotImplementedError):
+    def test_live_adapter_without_credentials_is_explicit(self):
+        with self.assertRaises(ValueError):
             create_adapter("mastodon")
 
 

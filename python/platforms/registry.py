@@ -4,6 +4,8 @@ from .base import PlatformAdapter
 from .discord import DiscordAdapter
 from .mock import MockPlatformAdapter
 from .misskey import MisskeyAdapter
+from .mastodon import MastodonAdapter
+from .bluesky import BlueskyAdapter
 from .telegram import TelegramAdapter
 
 
@@ -12,6 +14,8 @@ LIVE_ADAPTERS = {
     "telegram": TelegramAdapter,
     "discord": DiscordAdapter,
     "misskey": MisskeyAdapter,
+    "mastodon": MastodonAdapter,
+    "bluesky": BlueskyAdapter,
 }
 
 
