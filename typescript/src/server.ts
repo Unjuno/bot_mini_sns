@@ -7,7 +7,11 @@ const storePath = process.env.TYPESCRIPT_DATABASE_PATH ?? "posts.sqlite";
 const postStore = new SQLitePostStore(storePath);
 const configuredPlatform = process.env.PLATFORM?.trim().toLowerCase();
 const adapter = configuredPlatform ? createConfiguredAdapter(configuredPlatform) : null;
-const replyLimit = configuredPlatform === "telegram" || configuredPlatform === "discord" ? 10 : configuredPlatform === "kakaotalk" ? 3 : 5;
+function replyLimitForPlatform(platform: string): number {
+  if (platform === "telegram" || platform === "discord") return 10;
+  if (platform === "kakaotalk") return 3;
+  return 5;
+}
 const server = createServer((request, response) => {
   if (request.method !== "POST") {
     response.writeHead(405, { "content-type": "application/json" });
@@ -49,7 +53,7 @@ const server = createServer((request, response) => {
       }
       const payload = JSON.parse(body);
       const event = adapter ? adapter.parseEvent(payload) : payload as InboundEvent;
-      const reply = postStore.processEvent(event, replyLimit);
+      const reply = postStore.processEvent(event, replyLimitForPlatform(event.platform));
       if (adapter) {
         if (typeof adapter.sendReply === "function") await adapter.sendReply(event, reply);
         else if (typeof adapter.renderReply === "function") {

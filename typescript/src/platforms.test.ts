@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { processEvent, supportedPlatforms } from "./common";
+import { processEvent, supportedPlatforms, SQLitePostStore } from "./common";
 import { LineAdapter, TelegramAdapter, DiscordAdapter, MastodonAdapter, MisskeyAdapter, BlueskyAdapter, SlackAdapter, MatrixAdapter, WhatsAppAdapter, ViberAdapter, ZulipAdapter, GoogleChatAdapter, TeamsAdapter, InstagramAdapter, RedditAdapter, TwitchAdapter, KakaoTalkAdapter } from "./platforms";
 
 test("every implemented TypeScript adapter parses a representative webhook", () => {
@@ -66,4 +66,12 @@ test("TypeScript common core validates events and shares same-type posts across 
   assert.deepEqual(reply.messages.map((message) => message.text), ["telegram", "line"]);
   assert.throws(() => processEvent({ platform: "line", user_id: "", content_type: "text" }, posts), /required/);
   assert.throws(() => processEvent({ platform: "line", user_id: "u", content_type: "unknown" as any }, posts), /Unsupported content type/);
+});
+
+test("platform-specific reply limits are applied by the persistent store", () => {
+  const store = new SQLitePostStore(":memory:");
+  for (let i = 0; i < 11; i++) store.processEvent({ platform: "telegram", user_id: `u${i}`, content_type: "text", text: String(i) }, 10);
+  assert.equal(store.processEvent({ platform: "telegram", user_id: "latest", content_type: "text", text: "latest" }, 10).messages.length, 10);
+  assert.equal(store.processEvent({ platform: "kakaotalk", user_id: "k", content_type: "text", text: "k" }, 3).messages.length, 3);
+  store.close();
 });
