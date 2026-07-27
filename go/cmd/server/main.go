@@ -18,6 +18,9 @@ func replyLimit(platform string) int {
 	if platform == "telegram" || platform == "discord" {
 		return 10
 	}
+	if platform == "kakaotalk" {
+		return 3
+	}
 	return 5
 }
 

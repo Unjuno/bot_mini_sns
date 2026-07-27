@@ -39,7 +39,8 @@ try {
     }
     $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
     [$event, $sendReply] = runtime_adapter($payload);
-    $reply = process_event_sqlite($database, $event, in_array($event['platform'] ?? '', ['telegram', 'discord'], true) ? 10 : 5);
+    $replyLimit = in_array($event['platform'] ?? '', ['telegram', 'discord'], true) ? 10 : (($event['platform'] ?? '') === 'kakaotalk' ? 3 : 5);
+    $reply = process_event_sqlite($database, $event, $replyLimit);
     if ($sendReply !== null) {
         $sendReply($event, $reply);
     }

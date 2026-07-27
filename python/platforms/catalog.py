@@ -34,7 +34,7 @@ PLATFORM_CATALOG = {
     "whatsapp": _cap("whatsapp", max_reply_items=5),
     "instagram": _cap("instagram", max_reply_items=5),
     "teams": _cap("teams", attachments=True, max_reply_items=5),
-    "kakaotalk": _cap("kakaotalk", max_reply_items=5),
+    "kakaotalk": _cap("kakaotalk", max_reply_items=3),
     "twitch": _cap("twitch", max_reply_items=5),
     "reddit": _cap("reddit", max_reply_items=5),
 }
