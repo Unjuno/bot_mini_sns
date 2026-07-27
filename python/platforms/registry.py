@@ -3,6 +3,7 @@ from __future__ import annotations
 from .base import PlatformAdapter
 from .discord import DiscordAdapter
 from .mock import MockPlatformAdapter
+from .misskey import MisskeyAdapter
 from .telegram import TelegramAdapter
 
 
@@ -10,6 +11,7 @@ LIVE_ADAPTERS = {
     "line": None,  # LINE remains hosted by the existing Flask app during migration.
     "telegram": TelegramAdapter,
     "discord": DiscordAdapter,
+    "misskey": MisskeyAdapter,
 }
 
 
