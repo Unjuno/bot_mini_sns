@@ -18,7 +18,7 @@ function discord_send_reply(array $event, array $reply, string $token): void
 {
     $channel = $event['reply_target'] ?? ''; if ($channel === '' || $token === '') throw new InvalidArgumentException('Discord channel and token are required');
     foreach (array_slice($reply['messages'] ?? [], 0, 10) as $message) {
-        $body = ['content' => $message['text'] ?? '', 'allowed_mentions' => ['parse' => []]];
+        $body = ['content' => mb_substr((string)($message['text'] ?? ''), 0, 2000), 'allowed_mentions' => ['parse' => []]];
         $ch = adapter_curl_init('https://discord.com/api/v10/channels/'.rawurlencode((string)$channel).'/messages'); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bot '.$token, 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($body, JSON_THROW_ON_ERROR)]); $result = curl_exec($ch); $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE); if ($result === false || $status < 200 || $status >= 300) throw new RuntimeException('Discord API request failed'); curl_close($ch);
     }
 }

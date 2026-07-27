@@ -77,8 +77,8 @@ export class DiscordAdapter {
     if (!event.reply_target) throw new Error("Discord reply_target is required");
     const url = `https://discord.com/api/v10/channels/${event.reply_target}/messages`;
     for (const message of reply.messages.slice(0, 10)) {
-      if (message.type === "text") await this.request(url, JSON.stringify({ content: message.text, allowed_mentions: { parse: [] } }), "application/json");
-      else { if (!message.media_url) throw new Error(`Discord ${message.type} reply requires media_url`); const media = await this.http(message.media_url, {}); if (!media.ok) throw new Error("Discord media download failed"); const blob = await media.blob(); const form = new FormData(); form.append("payload_json", JSON.stringify({ content: message.text || "", allowed_mentions: { parse: [] } })); form.append("files[0]", blob, `attachment.${message.type}`); await this.request(url, form); }
+      if (message.type === "text") await this.request(url, JSON.stringify({ content: (message.text ?? "").slice(0, 2000), allowed_mentions: { parse: [] } }), "application/json");
+      else { if (!message.media_url) throw new Error(`Discord ${message.type} reply requires media_url`); const media = await this.http(message.media_url, {}); if (!media.ok) throw new Error("Discord media download failed"); const blob = await media.blob(); const form = new FormData(); form.append("payload_json", JSON.stringify({ content: (message.text || "").slice(0, 2000), allowed_mentions: { parse: [] } })); form.append("files[0]", blob, `attachment.${message.type}`); await this.request(url, form); }
     }
   }
   private async request(url: string, body: BodyInit, contentType?: string): Promise<void> { const headers: Record<string, string> = { Authorization: `Bot ${this.token}` }; if (contentType) headers["Content-Type"] = contentType; const response = await this.http(url, { method: "POST", headers, body }); if (!response.ok) throw new Error(`Discord API error: ${response.status}`); }
