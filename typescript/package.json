@@ -1,5 +1,5 @@
 {
   "private": true,
-  "scripts": {"build": "tsc", "start": "node dist/common-cli.js"},
+  "scripts": {"build": "tsc", "start": "node dist/server.js", "cli": "node dist/common-cli.js"},
   "devDependencies": {"@types/node": "latest", "typescript": "latest"}
 }
