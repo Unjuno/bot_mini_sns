@@ -9,3 +9,13 @@ def verify_hmac_sha256(body: bytes, secret: str, provided: str, prefix: str = ""
     actual = provided[len(prefix):] if prefix and provided.startswith(prefix) else provided
     expected = base64.b64encode(hmac.new(secret.encode(), body, hashlib.sha256).digest()).decode()
     return hmac.compare_digest(expected, actual)
+
+
+def verify_hmac_sha256_hex(body: bytes, secret: str, provided: str, prefix: str = "") -> bool:
+    actual = provided[len(prefix):] if prefix and provided.startswith(prefix) else provided
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, actual)
+
+
+def verify_slack_signature(body: bytes, secret: str, timestamp: str, provided: str) -> bool:
+    return verify_hmac_sha256_hex(b"v0:" + timestamp.encode() + b":" + body, secret, provided, "v0=")
