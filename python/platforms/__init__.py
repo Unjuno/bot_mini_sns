@@ -8,6 +8,7 @@ from .discord import DiscordAdapter
 from .misskey import MisskeyAdapter
 from .mastodon import MastodonAdapter
 from .bluesky import BlueskyAdapter
+from .configured import ConfiguredHTTPAdapter
 from .registry import create_adapter
 
-__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "create_adapter"]
+__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ConfiguredHTTPAdapter", "create_adapter"]

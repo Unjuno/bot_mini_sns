@@ -6,6 +6,7 @@ from .mock import MockPlatformAdapter
 from .misskey import MisskeyAdapter
 from .mastodon import MastodonAdapter
 from .bluesky import BlueskyAdapter
+from .configured import ConfiguredHTTPAdapter
 from .telegram import TelegramAdapter
 
 
@@ -18,11 +19,18 @@ LIVE_ADAPTERS = {
     "bluesky": BlueskyAdapter,
 }
 
+CONFIGURED_PLATFORMS = {
+    "zulip", "matrix", "slack", "google_chat", "viber", "whatsapp",
+    "instagram", "teams", "kakaotalk", "twitch", "reddit",
+}
+
 
 def create_adapter(platform: str, *, offline: bool = False, **kwargs) -> PlatformAdapter:
     """Create a live adapter or an offline contract adapter for any catalog entry."""
     if offline:
         return MockPlatformAdapter(platform)
+    if platform in CONFIGURED_PLATFORMS:
+        return ConfiguredHTTPAdapter(platform, **kwargs)
     adapter_type = LIVE_ADAPTERS.get(platform)
     if adapter_type is None:
         if platform == "line":
