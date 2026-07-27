@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Generator
 
@@ -106,9 +106,12 @@ def get_user(db_path: Path, platform_user_id: str) -> dict | None:
             "SELECT * FROM users WHERE line_user_id = ?", (platform_user_id,)
         ).fetchone()
         if row:
+            updated_at = now()
+            if updated_at <= row["updated_at"]:
+                updated_at = (datetime.fromisoformat(row["updated_at"]) + timedelta(microseconds=1)).isoformat()
             db.execute(
                 "UPDATE users SET updated_at=? WHERE line_user_id=?",
-                (now(), platform_user_id),
+                (updated_at, platform_user_id),
             )
             row = db.execute(
                 "SELECT * FROM users WHERE line_user_id = ?", (platform_user_id,)

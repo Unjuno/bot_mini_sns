@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import sqlite3
+import json
 from pathlib import Path
 from datetime import datetime, timezone
 from contextlib import contextmanager
@@ -54,6 +55,35 @@ class SQLitePostRepository:
                     media_url TEXT,
                     created_at TEXT NOT NULL
                 )"""
+            )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS processed_events (
+                    fingerprint TEXT PRIMARY KEY,
+                    response_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )"""
+            )
+
+    def claim_event(self, fingerprint: str) -> dict | None:
+        """Return the previous response for a duplicate, otherwise reserve it."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT response_json FROM processed_events WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row:
+                return json.loads(row[0])
+            connection.execute(
+                "INSERT INTO processed_events (fingerprint, response_json, created_at) VALUES (?, ?, ?)",
+                (fingerprint, json.dumps({"messages": []}), datetime.now(timezone.utc).isoformat()),
+            )
+        return None
+
+    def complete_event(self, fingerprint: str, response: dict) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE processed_events SET response_json=? WHERE fingerprint=?",
+                (json.dumps(response), fingerprint),
             )
 
     def save(self, post: StoredPost) -> None:
