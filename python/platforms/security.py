@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import time
 
 
 def verify_hmac_sha256(body: bytes, secret: str, provided: str, prefix: str = "") -> bool:
@@ -18,4 +19,9 @@ def verify_hmac_sha256_hex(body: bytes, secret: str, provided: str, prefix: str 
 
 
 def verify_slack_signature(body: bytes, secret: str, timestamp: str, provided: str) -> bool:
+    try:
+        if abs(time.time() - int(timestamp)) > 300:
+            return False
+    except (TypeError, ValueError):
+        return False
     return verify_hmac_sha256_hex(b"v0:" + timestamp.encode() + b":" + body, secret, provided, "v0=")

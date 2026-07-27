@@ -15,5 +15,7 @@ export function verifyHmacSha256Hex(rawBody: string | Buffer, secret: string, pr
 }
 
 export function verifySlackSignature(rawBody: string | Buffer, secret: string, timestamp: string, provided: string): boolean {
+  const parsed = Number(timestamp);
+  if (!Number.isInteger(parsed) || Math.abs(Date.now() / 1000 - parsed) > 300) return false;
   return verifyHmacSha256Hex(`v0:${timestamp}:${rawBody}`, secret, provided, "v0=");
 }

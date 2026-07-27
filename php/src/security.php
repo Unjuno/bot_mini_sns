@@ -16,5 +16,6 @@ function verify_hmac_sha256_hex(string $body, string $secret, string $provided, 
 
 function verify_slack_signature(string $body, string $secret, string $timestamp, string $provided): bool
 {
+    if (!ctype_digit($timestamp) || abs(time() - (int) $timestamp) > 300) return false;
     return verify_hmac_sha256_hex('v0:'.$timestamp.':'.$body, $secret, $provided, 'v0=');
 }
