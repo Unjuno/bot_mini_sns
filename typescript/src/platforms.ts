@@ -31,3 +31,34 @@ export class LineAdapter {
     if (!response.ok) throw new Error(`LINE API error: ${response.status}`);
   }
 }
+
+export class TelegramAdapter {
+  constructor(private readonly token: string, private readonly http: HttpClient = fetch) {
+    if (!token) throw new Error("TELEGRAM_BOT_TOKEN is required");
+  }
+
+  parseEvent(payload: any): InboundEvent {
+    const message = payload.message ?? payload.edited_message;
+    if (!message?.from?.id || message.chat?.id === undefined) throw new Error("Telegram update has no supported message");
+    const common = { platform: "telegram", user_id: String(message.from.id), reply_target: String(message.chat.id) };
+    if (message.text !== undefined) return { ...common, content_type: "text", text: message.text };
+    if (message.photo?.length) return { ...common, content_type: "image", media_url: `telegram:${message.photo.at(-1).file_id}` };
+    for (const [type, key] of [["audio", "audio"], ["video", "video"], ["file", "document"]] as const) {
+      if (message[key]) return { ...common, content_type: type, media_url: `telegram:${message[key].file_id}` };
+    }
+    throw new Error("Telegram content type is not supported");
+  }
+
+  async sendReply(event: InboundEvent, reply: OutboundReply): Promise<void> {
+    for (const message of reply.messages.slice(0, 10)) {
+      const media = message.media_url?.replace(/^telegram:/, "");
+      const methods: Record<string, [string, string]> = { image: ["sendPhoto", "photo"], audio: ["sendAudio", "audio"], video: ["sendVideo", "video"], file: ["sendDocument", "document"] };
+      const [method, field] = methods[message.type] ?? ["sendMessage", "text"];
+      if (message.type !== "text" && !media) throw new Error(`Telegram ${message.type} reply requires media_url`);
+      const body: Record<string, string> = { chat_id: event.reply_target ?? event.user_id, [field]: message.type === "text" ? message.text : media! };
+      if (message.type !== "text" && message.text) body.caption = message.text;
+      const response = await this.http(`https://api.telegram.org/bot${this.token}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!response.ok) throw new Error(`Telegram API error: ${response.status}`);
+    }
+  }
+}
