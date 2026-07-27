@@ -64,6 +64,16 @@ php -l bin/server.php
 ```powershell
 git diff --check
 git status --short
+
+## ルートからのテスト
+
+リポジトリ直下で次を実行すると、Pythonテストを含む標準確認ができます。
+
+```bash
+python -m pytest -q
+```
+
+各言語の専用確認は、`typescript`で`npm test`、`go`で`go test ./...`、`php`で`php tests/platform_adapters.php`を実行します。
 ```
 
 生成された各言語のSQLite、アップロードファイル、`.env`はコミットしません。公開前は[公開前チェックリスト](public-release-checklist.md)も確認します。
