@@ -28,7 +28,7 @@ class MisskeyAdapter(PlatformAdapter):
         if not user_id:
             raise ValueError("Misskey note has no user")
         files = note.get("files") or []
-        common = {"platform": "misskey", "user_id": user_id}
+        common = {"platform": "misskey", "user_id": user_id, "reply_to_id": str(note.get("id")) if note.get("id") else None}
         if note.get("text"):
             return InboundEvent(**common, content_type="text", text=note["text"])
         if files:
@@ -42,7 +42,7 @@ class MisskeyAdapter(PlatformAdapter):
             text = message.text or message.media_url or ""
             response = self.session.post(
                 f"{self.base_url}/api/notes/create",
-                json={"i": self.token, "text": text[:3000]},
+                json={"i": self.token, "text": text[:3000], **({"replyId": event.reply_to_id} if event.reply_to_id else {})},
                 timeout=30,
             )
             response.raise_for_status()

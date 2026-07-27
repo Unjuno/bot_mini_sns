@@ -34,12 +34,7 @@ class MemoryPostRepository:
         self.posts.insert(0, post)
 
     def recent(self, platform: str, user_id: str, content_type: str, limit: int) -> list[StoredPost]:
-        return [
-            post for post in self.posts
-            if post.platform == platform
-            and post.user_id == user_id
-            and post.content_type == content_type
-        ][:limit]
+        return [post for post in self.posts if post.content_type == content_type][:limit]
 
 
 class SQLitePostRepository:
@@ -76,9 +71,9 @@ class SQLitePostRepository:
             rows = connection.execute(
                 """SELECT platform, user_id, content_type, text, media_url
                    FROM platform_posts
-                   WHERE platform=? AND user_id=? AND content_type=?
+                   WHERE content_type=?
                    ORDER BY id DESC LIMIT ?""",
-                (platform, user_id, content_type, limit),
+                (content_type, limit),
             ).fetchall()
         return [StoredPost(*row) for row in rows]
 
@@ -100,7 +95,7 @@ def process_event(
     repository: PostRepository,
     max_reply_items: int = 5,
 ) -> OutboundReply:
-    """Persist an event and build a same-type reply without platform APIs."""
+    """Persist an event and build a cross-platform same-type feed reply."""
     repository.save(
         StoredPost(
             platform=event.platform,

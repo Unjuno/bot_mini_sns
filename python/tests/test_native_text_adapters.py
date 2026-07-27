@@ -11,7 +11,6 @@ from platforms.instagram import InstagramAdapter
 from platforms.teams import TeamsAdapter
 from platforms.twitch import TwitchAdapter
 from platforms.reddit import RedditAdapter
-from platforms.kakaotalk import KakaoTalkAdapter
 from platforms.line import LineAdapter
 
 
@@ -32,10 +31,13 @@ class NativeTextAdapterTests(unittest.TestCase):
         event = adapter.parse_event({"message": {"sender_email": "u@test", "content": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
         self.assertEqual(event.user_id, "u@test"); self.assertEqual(session.calls[0][0], "post")
+        stream_event = adapter.parse_event({"message": {"type": "stream", "sender_email": "u@test", "display_recipient": "general", "subject": "topic", "content": "hello"}})
+        adapter.send_reply(stream_event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        self.assertEqual(session.calls[1][2]["data"]["type"], "stream")
 
     def test_matrix_event_and_reply(self):
         session = Session(); adapter = MatrixAdapter("https://matrix.test", "token", session)
-        event = adapter.parse_event({"event": {"sender": "@u:test", "content": {"msgtype": "m.text", "body": "hello"}}})
+        event = adapter.parse_event({"event": {"sender": "@u:test", "room_id": "!room:test", "content": {"msgtype": "m.text", "body": "hello"}}})
         import os
         old = os.environ.get("MATRIX_ROOM_ID"); os.environ["MATRIX_ROOM_ID"] = "!room:test"
         try: adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
@@ -46,15 +48,15 @@ class NativeTextAdapterTests(unittest.TestCase):
 
     def test_slack_event_and_reply(self):
         session = Session(); adapter = SlackAdapter("xoxb-token", session)
-        event = adapter.parse_event({"event": {"user": "U1", "text": "hello"}})
+        event = adapter.parse_event({"event": {"user": "U1", "channel": "C1", "text": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
-        self.assertEqual(event.user_id, "U1"); self.assertEqual(session.calls[0][2]["json"]["channel"], "U1")
+        self.assertEqual(event.user_id, "U1"); self.assertEqual(session.calls[0][2]["json"]["channel"], "C1")
 
     def test_google_chat_event_and_reply(self):
         session = Session(); adapter = GoogleChatAdapter("token", session)
-        event = adapter.parse_event({"message": {"sender": {"name": "users/1"}, "text": "hello"}})
+        event = adapter.parse_event({"space": {"name": "spaces/1"}, "message": {"sender": {"name": "users/1"}, "text": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
-        self.assertEqual(event.user_id, "users/1"); self.assertEqual(session.calls[0][0], "post")
+        self.assertEqual(event.user_id, "users/1"); self.assertEqual(event.reply_target, "spaces/1"); self.assertEqual(session.calls[0][0], "post")
 
     def test_viber_event_and_reply(self):
         session = Session(); adapter = ViberAdapter("token", session)
@@ -66,8 +68,10 @@ class NativeTextAdapterTests(unittest.TestCase):
         whatsapp = WhatsAppAdapter("token", "phone", Session())
         event = whatsapp.parse_event({"entry": [{"changes": [{"value": {"messages": [{"from": "u", "type": "text", "text": {"body": "hello"}}]}}]}]})
         self.assertEqual(event.user_id, "u")
+        file_event = whatsapp.parse_event({"entry": [{"changes": [{"value": {"messages": [{"from": "u", "type": "document", "document": {"id": "m1"}}]}}]}]})
+        self.assertEqual(file_event.content_type, "file"); self.assertEqual(file_event.media_url, "m1")
         instagram = InstagramAdapter("token", "account", Session())
-        self.assertEqual(instagram.parse_event({"sender": {"id": "ig"}, "message": {"text": "hello"}}).user_id, "ig")
+        self.assertEqual(instagram.parse_event({"entry": [{"messaging": [{"sender": {"id": "ig"}, "message": {"text": "hello"}}]}]}).user_id, "ig")
 
     def test_teams_event_and_reply(self):
         import os
@@ -78,25 +82,21 @@ class NativeTextAdapterTests(unittest.TestCase):
         finally:
             if old is None: os.environ.pop("TEAMS_SERVICE_URL", None)
             else: os.environ["TEAMS_SERVICE_URL"] = old
-        self.assertEqual(session.calls[0][0], "post")
+        self.assertEqual(session.calls[0][0], "post"); self.assertEqual(event.reply_target, "c")
 
     def test_twitch_and_reddit_events(self):
         twitch = TwitchAdapter("token", "client", "broadcaster", "sender", Session())
-        self.assertEqual(twitch.parse_event({"event": {"chatter_user_id": "u", "message": "hello"}}).user_id, "u")
+        twitch_event = twitch.parse_event({"event": {"chatter_user_id": "u", "message_id": "m1", "message": "hello"}})
+        self.assertEqual(twitch_event.user_id, "u"); self.assertEqual(twitch_event.reply_to_id, "m1")
         reddit = RedditAdapter("token", Session())
         self.assertEqual(reddit.parse_event({"data": {"author": {"name": "u"}, "body": "hello", "name": "t1_x"}}).media_url, "t1_x")
 
-    def test_kakao_event_and_reply(self):
-        session = Session(); adapter = KakaoTalkAdapter("https://kakao.test", session)
-        event = adapter.parse_event({"userRequest": {"user": {"id": "u"}, "utterance": "hello"}})
-        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
-        self.assertEqual(event.user_id, "u")
-
     def test_line_event_and_reply(self):
         session = Session(); adapter = LineAdapter("token", session)
-        event = adapter.parse_event({"events": [{"source": {"userId": "u"}, "message": {"type": "text", "text": "hello"}}]})
+        event = adapter.parse_event({"events": [{"replyToken": "rt", "source": {"userId": "u"}, "message": {"type": "text", "text": "hello"}}]})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
-        self.assertEqual(event.user_id, "u"); self.assertEqual(session.calls[0][2]["json"]["to"], "u")
+        self.assertEqual(event.user_id, "u"); self.assertEqual(session.calls[0][1][0], "https://api.line.me/v2/bot/message/reply")
+        self.assertEqual(session.calls[0][2]["json"]["replyToken"], "rt")
 
 
 if __name__ == "__main__": unittest.main()

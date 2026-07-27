@@ -13,8 +13,20 @@ class TwitchAdapter(PlatformAdapter):
         self.session = session or requests.Session()
     def parse_event(self, payload: Any, headers=None) -> InboundEvent:
         event = payload.get("event", payload)
-        return InboundEvent(platform="twitch", user_id=str(event.get("chatter_user_id") or event.get("user_id") or payload.get("user_id")), content_type="text", text=event.get("message", {}).get("text") if isinstance(event.get("message"), dict) else event.get("message") or event.get("text"))
+        user_id = event.get("chatter_user_id") or event.get("user_id") or payload.get("user_id")
+        if not user_id:
+            raise ValueError("Twitch event has no chatter user")
+        text = event.get("message", {}).get("text") if isinstance(event.get("message"), dict) else event.get("message") or event.get("text")
+        if text is None:
+            raise ValueError("Twitch event has no chat message")
+        return InboundEvent(platform="twitch", user_id=str(user_id), reply_to_id=event.get("message_id"), content_type="text", text=text)
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
         headers = {"Authorization": f"Bearer {self.token}", "Client-Id": self.client_id}
         for message in reply.messages:
-            response = self.session.post("https://api.twitch.tv/helix/chat/messages", headers=headers, json={"broadcaster_id": self.broadcaster_id, "sender_id": self.sender_id, "message": message.text or message.media_url or ""}, timeout=30); response.raise_for_status()
+            body = {"broadcaster_id": self.broadcaster_id, "sender_id": self.sender_id, "message": message.text or message.media_url or ""}
+            if event.reply_to_id:
+                body["reply_parent_message_id"] = event.reply_to_id
+            response = self.session.post("https://api.twitch.tv/helix/chat/messages", headers=headers, json=body, timeout=30); response.raise_for_status()
+            result = response.json()
+            if not result.get("data") or not result["data"][0].get("is_sent"):
+                raise RuntimeError(f"Twitch chat message was not sent: {result}")

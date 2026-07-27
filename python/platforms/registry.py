@@ -18,7 +18,6 @@ from .instagram import InstagramAdapter
 from .teams import TeamsAdapter
 from .twitch import TwitchAdapter
 from .reddit import RedditAdapter
-from .kakaotalk import KakaoTalkAdapter
 from .line import LineAdapter
 
 
@@ -39,7 +38,6 @@ LIVE_ADAPTERS = {
     "teams": TeamsAdapter,
     "twitch": TwitchAdapter,
     "reddit": RedditAdapter,
-    "kakaotalk": KakaoTalkAdapter,
 }
 
 CONFIGURED_PLATFORMS = {

@@ -17,5 +17,15 @@ class ViberAdapter(PlatformAdapter):
         return InboundEvent(platform="viber", user_id=str(sender.get("id") or payload.get("user_id")), content_type=kind, text=message.get("text"), media_url=message.get("media"))
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
         for message in reply.messages:
-            body = {"receiver": event.user_id, "type": "text", "text": message.text or message.media_url or ""}
+            body = {"receiver": event.user_id, "type": message.type}
+            if message.type == "text":
+                body["text"] = message.text
+            else:
+                if message.type == "audio":
+                    raise ValueError("Viber audio replies are not supported by the documented Bot API types")
+                if not message.media_url:
+                    raise ValueError(f"Viber {message.type} reply requires media_url")
+                body["media"] = message.media_url
+                if message.text:
+                    body["text"] = message.text
             response = self.session.post("https://chatapi.viber.com/pa/send_message", headers={"X-Viber-Auth-Token": self.token}, json=body, timeout=30); response.raise_for_status()

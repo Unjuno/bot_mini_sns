@@ -27,7 +27,7 @@ REQUIRED = {
     "whatsapp": ("WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"),
     "instagram": ("INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_ACCOUNT_ID"),
     "teams": ("TEAMS_BOT_TOKEN", "TEAMS_SERVICE_URL"),
-    "kakaotalk": ("KAKAOTALK_CALLBACK_URL",),
+    "kakaotalk": (),
     "twitch": ("TWITCH_ACCESS_TOKEN", "TWITCH_CLIENT_ID", "TWITCH_BROADCASTER_ID", "TWITCH_SENDER_ID"),
     "reddit": ("REDDIT_ACCESS_TOKEN",),
 }

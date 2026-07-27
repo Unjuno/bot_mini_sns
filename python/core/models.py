@@ -11,6 +11,12 @@ class InboundEvent(BaseModel):
     content_type: ContentType
     text: str | None = None
     media_url: str | None = None
+    reply_token: str | None = None
+    reply_to_id: str | None = None
+    reply_target: str | None = None
+    reply_to_uri: str | None = None
+    reply_to_cid: str | None = None
+    reply_mode: str | None = None
 
 
 class OutboundMessage(BaseModel):

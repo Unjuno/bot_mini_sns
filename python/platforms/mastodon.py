@@ -27,7 +27,7 @@ class MastodonAdapter(PlatformAdapter):
         if not user_id:
             raise ValueError("Mastodon status has no account")
         attachments = status.get("media_attachments") or []
-        common = {"platform": "mastodon", "user_id": user_id}
+        common = {"platform": "mastodon", "user_id": user_id, "reply_to_id": str(status.get("id")) if status.get("id") else None}
         if status.get("text"):
             return InboundEvent(**common, content_type="text", text=status["text"])
         if attachments:
@@ -41,7 +41,7 @@ class MastodonAdapter(PlatformAdapter):
             response = self.session.post(
                 f"{self.base_url}/api/v1/statuses",
                 headers=headers,
-                data={"status": (message.text or message.media_url or "")[:5000]},
+                data={"status": (message.text or message.media_url or "")[:5000], **({"in_reply_to_id": event.reply_to_id} if event.reply_to_id else {})},
                 timeout=30,
             )
             response.raise_for_status()

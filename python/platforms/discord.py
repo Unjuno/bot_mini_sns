@@ -28,7 +28,11 @@ class DiscordAdapter(PlatformAdapter):
         message = payload.get("d", payload)
         if not message.get("channel_id") or not message.get("author", {}).get("id"):
             raise ValueError("Discord message has no channel or author")
-        common = {"platform": "discord", "user_id": str(message["channel_id"])}
+        common = {
+            "platform": "discord",
+            "user_id": str(message["author"]["id"]),
+            "reply_target": str(message["channel_id"]),
+        }
         if message.get("content"):
             return InboundEvent(**common, content_type="text", text=message["content"])
         attachments = message.get("attachments") or []
@@ -39,7 +43,9 @@ class DiscordAdapter(PlatformAdapter):
         return InboundEvent(**common, content_type=content_type, media_url=attachment.get("url"))
 
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
-        url = f"{self.base_url}/channels/{event.user_id}/messages"
+        if not event.reply_target:
+            raise ValueError("Discord reply_target (channel_id) is required")
+        url = f"{self.base_url}/channels/{event.reply_target}/messages"
         headers = {"Authorization": f"Bot {self.token}"}
         messages = reply.messages[: self.capabilities.max_reply_items or len(reply.messages)]
         body: dict[str, Any] = {"allowed_mentions": {"parse": []}}

@@ -40,7 +40,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	postsMu.Lock()
 	defer postsMu.Unlock()
-	reply := common.ProcessEvent(event, &posts, 5)
+	reply, err := common.ProcessEvent(event, &posts, 5)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
 	savePosts()
 	_ = json.NewEncoder(w).Encode(reply)
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -29,15 +30,31 @@ class BlueskyAdapter(PlatformAdapter):
         text = record.get("text")
         if not author or text is None:
             raise ValueError("Bluesky post has no supported content")
-        return InboundEvent(platform="bluesky", user_id=str(author), content_type="text", text=text)
+        return InboundEvent(
+            platform="bluesky",
+            user_id=str(author),
+            content_type="text",
+            text=text,
+            reply_to_uri=payload.get("uri"),
+            reply_to_cid=payload.get("cid"),
+        )
 
     def send_reply(self, event: InboundEvent, reply: OutboundReply) -> None:
         headers = {"Authorization": f"Bearer {self.access_jwt}", "Content-Type": "application/json"}
         for message in reply.messages[: self.capabilities.max_reply_items or len(reply.messages)]:
+            record = {
+                "text": message.text or message.media_url or "",
+                "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }
+            if event.reply_to_uri and event.reply_to_cid:
+                record["reply"] = {
+                    "root": {"uri": event.reply_to_uri, "cid": event.reply_to_cid},
+                    "parent": {"uri": event.reply_to_uri, "cid": event.reply_to_cid},
+                }
             response = self.session.post(
                 f"{self.service_url}/xrpc/com.atproto.repo.createRecord",
                 headers=headers,
-                json={"repo": self.repo, "collection": "app.bsky.feed.post", "record": {"text": message.text or message.media_url or "", "createdAt": "2026-07-27T00:00:00.000Z"}},
+                json={"repo": self.repo, "collection": "app.bsky.feed.post", "record": record},
                 timeout=30,
             )
             response.raise_for_status()

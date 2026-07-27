@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$event = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR);
 try {
+    $event = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR);
     $reply = process_event($event, $posts, 5);
     $directory = dirname($storePath);
     if (!is_dir($directory)) {
