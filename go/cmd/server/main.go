@@ -232,7 +232,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	databasePath := os.Getenv("GO_DATABASE_PATH")
+	databasePath := os.Getenv("GO_DATABASE_URL")
+	if databasePath == "" {
+		databasePath = os.Getenv("GO_DATABASE_PATH")
+	}
 	if databasePath == "" {
 		databasePath = "posts.sqlite"
 	}

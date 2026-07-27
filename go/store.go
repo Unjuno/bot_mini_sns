@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 )
 
@@ -12,25 +14,30 @@ import (
 type PostStore struct{ db *sql.DB }
 
 func OpenPostStore(path string) (*PostStore, error) {
-	db, err := sql.Open("sqlite", path)
+	driver, schema := "sqlite", `CREATE TABLE IF NOT EXISTS platform_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL,
+        content_type TEXT NOT NULL, text TEXT, media_url TEXT, status TEXT NOT NULL DEFAULT 'published',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+	if strings.HasPrefix(path, "postgres://") || strings.HasPrefix(path, "postgresql://") {
+		driver = "pgx"
+		schema = `CREATE TABLE IF NOT EXISTS platform_posts (
+        id BIGSERIAL PRIMARY KEY, platform TEXT NOT NULL, user_id TEXT NOT NULL,
+        content_type TEXT NOT NULL, text TEXT, media_url TEXT, status TEXT NOT NULL DEFAULT 'published',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+	}
+	db, err := sql.Open(driver, path)
 	if err != nil {
 		return nil, err
 	}
-	const schema = `CREATE TABLE IF NOT EXISTS platform_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        platform TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        content_type TEXT NOT NULL,
-        text TEXT,
-        media_url TEXT,
-        status TEXT NOT NULL DEFAULT 'published',
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`
 	if _, err = db.Exec(schema); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
-	_, _ = db.Exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'")
+	if driver == "sqlite" {
+		_, _ = db.Exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'")
+	}
 	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS processed_events (fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`); err != nil {
 		_ = db.Close()
 		return nil, err
