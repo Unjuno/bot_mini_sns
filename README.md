@@ -150,6 +150,8 @@ go run ./cmd/server
 
 `POST http://127.0.0.1:8080/webhook`へ共通イベントJSONを送信します。
 
+Go版は`posts.sqlite`へ保存し、`GO_DATABASE_PATH`で保存先を変更できます。
+
 各言語版は、外部サービスのWebhook受信から共通イベントへの変換、保存、同種投稿の返信、各サービスへの送信までを独立して実行します。Pythonの`app.py`はLINE専用の基準Webhookで、`python/adapter_app.py`とPHP・TypeScript・Goの各サーバーはそれぞれ単独でデプロイできます。
 
 共通イベントの例：
@@ -170,7 +172,7 @@ go run ./cmd/server
 cd python
 python -m unittest discover -s tests
 
-# TypeScript
+# TypeScript (Node.js 22.5+)
 cd ..\typescript
 npm install
 npx tsc --noEmit

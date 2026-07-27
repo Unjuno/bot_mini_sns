@@ -66,4 +66,4 @@ git diff --check
 git status --short
 ```
 
-生成されたSQLite、`posts.json`、アップロードファイル、`.env`はコミットしません。公開前は[公開前チェックリスト](public-release-checklist.md)も確認します。
+生成された各言語のSQLite、アップロードファイル、`.env`はコミットしません。公開前は[公開前チェックリスト](public-release-checklist.md)も確認します。

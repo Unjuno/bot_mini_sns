@@ -3,7 +3,7 @@
 ## 設定と秘密情報
 
 - [x] `.env.example`に秘密情報の実値が入っていない
-- [x] `.env`、SQLite、`posts.json`、アップロードファイルがGit管理外になっている
+- [x] `.env`、各言語のSQLiteデータベース、アップロードファイルがGit管理外になっている
 - [x] `python/check_setup.py --platform <platform> --offline`が成功する
 - [x] `docs/platforms/README.md`の必須環境変数と`.env.example`が一致している
 

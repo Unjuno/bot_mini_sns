@@ -10,21 +10,8 @@ import (
 	common "my_first_bot/go"
 )
 
-var posts []common.InboundEvent
-var postsPath = "posts.json"
+var postStore *common.PostStore
 var postsMu sync.Mutex
-
-func loadPosts() {
-	data, err := os.ReadFile(postsPath)
-	if err == nil {
-		_ = json.Unmarshal(data, &posts)
-	}
-}
-
-func savePosts() {
-	data, _ := json.MarshalIndent(posts, "", "  ")
-	_ = os.WriteFile(postsPath, data, 0600)
-}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -58,13 +45,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	postsMu.Lock()
 	defer postsMu.Unlock()
-	reply, err := common.ProcessEvent(event, &posts, 5)
+	reply, err := postStore.ProcessEvent(event, 5)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
-	savePosts()
 	if renderReply != nil {
 		if err := renderReply(w, reply); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -177,10 +163,16 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	if configured := os.Getenv("POSTS_FILE"); configured != "" {
-		postsPath = configured
+	databasePath := os.Getenv("GO_DATABASE_PATH")
+	if databasePath == "" {
+		databasePath = "posts.sqlite"
 	}
-	loadPosts()
+	var err error
+	postStore, err = common.OpenPostStore(databasePath)
+	if err != nil {
+		panic(err)
+	}
+	defer postStore.Close()
 	http.HandleFunc("/webhook", handler)
 	_ = http.ListenAndServe(":"+port, nil)
 }

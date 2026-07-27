@@ -18,6 +18,8 @@
 | --- | --- | --- |
 | アプリ設定 | `CONFIG_PATH` | `python/config.json` |
 | SQLite DB | `DATABASE_PATH` | `python/sns_bot.db` |
+| TypeScript SQLite DB | `TYPESCRIPT_DATABASE_PATH` | `typescript/posts.sqlite` |
+| Go SQLite DB | `GO_DATABASE_PATH` | `go/posts.sqlite` |
 | メディア保存先 | `MEDIA_DIR` | `python/uploaded_media` |
 | HTTPポート | `PORT` | `5000` |
 

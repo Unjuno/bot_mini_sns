@@ -1,13 +1,10 @@
 import { createServer } from "node:http";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { processEvent, InboundEvent } from "./common";
+import { SQLitePostStore, InboundEvent } from "./common";
 import { createConfiguredAdapter } from "./platforms";
 import { verifyHmacSha256, verifyHmacSha256Hex, verifySlackSignature } from "./security";
 
-const storePath = process.env.POSTS_FILE ?? "posts.json";
-const posts: InboundEvent[] = existsSync(storePath)
-  ? JSON.parse(readFileSync(storePath, "utf8")) as InboundEvent[]
-  : [];
+const storePath = process.env.TYPESCRIPT_DATABASE_PATH ?? "posts.sqlite";
+const postStore = new SQLitePostStore(storePath);
 const configuredPlatform = process.env.PLATFORM?.trim().toLowerCase();
 const adapter = configuredPlatform ? createConfiguredAdapter(configuredPlatform) : null;
 const server = createServer((request, response) => {
@@ -51,8 +48,7 @@ const server = createServer((request, response) => {
       }
       const payload = JSON.parse(body);
       const event = adapter ? adapter.parseEvent(payload) : payload as InboundEvent;
-      const reply = processEvent(event, posts);
-      writeFileSync(storePath, JSON.stringify(posts, null, 2));
+      const reply = postStore.processEvent(event);
       if (adapter) {
         if (typeof adapter.sendReply === "function") await adapter.sendReply(event, reply);
         else if (typeof adapter.renderReply === "function") {
@@ -71,3 +67,4 @@ const server = createServer((request, response) => {
 });
 
 server.listen(Number(process.env.PORT ?? 3000));
+process.on("exit", () => postStore.close());

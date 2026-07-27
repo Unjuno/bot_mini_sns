@@ -24,6 +24,34 @@ export type OutboundReply = {
   messages: Array<{ type: ContentType; text: string; media_url: string | null }>;
 };
 
+export class SQLitePostStore {
+  private readonly database: any;
+
+  constructor(path: string) {
+    // node:sqlite is built into Node.js 22.5+; the server is intentionally dependency-light.
+    const { DatabaseSync } = require("node:sqlite") as { DatabaseSync: new (path: string) => any };
+    this.database = new DatabaseSync(path);
+    this.database.exec(`CREATE TABLE IF NOT EXISTS platform_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL,
+      text TEXT, media_url TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+  }
+
+  close(): void { this.database.close(); }
+
+  processEvent(event: InboundEvent, limit = 5): OutboundReply {
+    if (!(supportedPlatforms as readonly string[]).includes(event.platform)) throw new Error(`Unsupported platform: ${event.platform}`);
+    if (!event.user_id || !event.content_type) throw new Error("platform, user_id, and content_type are required");
+    if (!( ["text", "image", "audio", "video", "file"] as string[]).includes(event.content_type)) throw new Error(`Unsupported content type: ${event.content_type}`);
+    if (!Number.isInteger(limit) || limit < 1) throw new Error("limit must be a positive integer");
+    const insert = this.database.prepare("INSERT INTO platform_posts (platform,user_id,content_type,text,media_url) VALUES (?,?,?,?,?)");
+    insert.run(event.platform, event.user_id, event.content_type, event.text ?? null, event.media_url ?? null);
+    const rows = this.database.prepare("SELECT content_type AS type, COALESCE(text, '') AS text, media_url FROM platform_posts WHERE content_type=? ORDER BY id DESC LIMIT ?").all(event.content_type, limit) as Array<{ type: ContentType; text: string; media_url: string | null }>;
+    return { messages: rows.map((row) => ({ type: row.type, text: row.text, media_url: row.media_url })) };
+  }
+}
+
 export function processEvent(event: InboundEvent, posts: InboundEvent[], limit = 5): OutboundReply {
   if (!(supportedPlatforms as readonly string[]).includes(event.platform)) {
     throw new Error(`Unsupported platform: ${event.platform}`);
