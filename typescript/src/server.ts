@@ -35,6 +35,7 @@ const server = createServer(async (request, response) => {
   request.on("data", (chunk: string) => { body += chunk; if (Buffer.byteLength(body, "utf8") > MAX_EVENT_BODY_BYTES) oversized = true; });
   request.on("end", async () => {
     let claimedFingerprint: string | null = null;
+    let deliveryFailed = false;
     try {
       if (oversized) {
         response.writeHead(413, { "content-type": "application/json" });
@@ -81,7 +82,7 @@ const server = createServer(async (request, response) => {
       claimedFingerprint = fingerprint;
       const reply = await postStore.processEvent(event, replyLimitForPlatform(event.platform));
       if (adapter) {
-        if (typeof adapter.sendReply === "function") await adapter.sendReply(event, reply);
+        if (typeof adapter.sendReply === "function") { deliveryFailed = true; await adapter.sendReply(event, reply); deliveryFailed = false; }
         else if (typeof adapter.renderReply === "function") {
           response.writeHead(200, { "content-type": "application/json" });
           await postStore.completeEvent(fingerprint, reply);
@@ -95,8 +96,8 @@ const server = createServer(async (request, response) => {
     } catch (error) {
       if (claimedFingerprint) await postStore.releaseEvent(claimedFingerprint);
       console.error("Webhook processing failed", error);
-      response.writeHead(400, { "content-type": "application/json" });
-      response.end(JSON.stringify({ error: "invalid webhook payload" }));
+      response.writeHead(deliveryFailed ? 502 : 400, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: deliveryFailed ? "platform delivery failed" : "invalid webhook payload" }));
     }
   });
 });
