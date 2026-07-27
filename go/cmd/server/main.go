@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -116,8 +117,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if renderReply != nil {
 		_ = postStore.CompleteEvent(fingerprint, reply)
 		if err := renderReply(w, reply); err != nil {
+			log.Printf("platform reply rendering failed: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "platform reply rendering failed"})
 			return
 		}
 		return
