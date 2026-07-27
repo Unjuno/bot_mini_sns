@@ -15,7 +15,7 @@ class InboundEvent(BaseModel):
 
 class OutboundMessage(BaseModel):
     type: ContentType
-    text: str
+    text: str = ""
     media_url: str | None = None
 
 
@@ -25,6 +25,7 @@ class OutboundReply(BaseModel):
 
 class User(BaseModel):
     id: int
+    platform: str = "line"
     platform_user_id: str
     display_name: str | None = None
     status: str = "active"
@@ -35,6 +36,7 @@ class User(BaseModel):
 class Post(BaseModel):
     id: int
     user_id: int
+    platform: str = "line"
     type: str
     text: str | None = None
     media_url: str | None = None
