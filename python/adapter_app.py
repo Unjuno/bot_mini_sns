@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from core.service import SQLitePostRepository, process_event
 from platforms import create_adapter
 from platforms.catalog import PRODUCTION_READY
+from platforms.security import verify_hmac_sha256, verify_hmac_sha256_hex, verify_slack_signature
 
 
 ROOT = Path(__file__).resolve().parent
@@ -52,7 +53,15 @@ def webhook():
     if adapter is None:
         return jsonify({"error": startup_error}), 503
     try:
-        event = adapter.parse_event(request.get_json(force=True), dict(request.headers))
+        raw_body = request.get_data(cache=True)
+        headers = dict(request.headers)
+        if PLATFORM == "line" and not verify_hmac_sha256(raw_body, os.getenv("CHANNEL_SECRET", ""), headers.get("X-Line-Signature", "")):
+            return jsonify({"error": "invalid LINE signature"}), 401
+        if PLATFORM == "slack" and not verify_slack_signature(raw_body, os.getenv("SLACK_SIGNING_SECRET", ""), headers.get("X-Slack-Request-Timestamp", ""), headers.get("X-Slack-Signature", "")):
+            return jsonify({"error": "invalid Slack signature"}), 401
+        if PLATFORM == "whatsapp" and not verify_hmac_sha256_hex(raw_body, os.getenv("WHATSAPP_APP_SECRET", ""), headers.get("X-Hub-Signature-256", ""), "sha256="):
+            return jsonify({"error": "invalid WhatsApp signature"}), 401
+        event = adapter.parse_event(request.get_json(force=True), headers)
         reply = process_event(event, repository, adapter.capabilities.max_reply_items or 5)
         adapter.send_reply(event, reply)
         return jsonify(reply.model_dump()), 200
