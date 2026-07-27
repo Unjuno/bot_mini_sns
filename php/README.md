@@ -1,8 +1,8 @@
-# PHP common implementation
+# PHP standalone implementation
 
-This is the PHP port of the platform-neutral event contract. It reads one JSON
-event per line and writes one JSON `OutboundReply` per line. Platform adapters
-must handle authentication, webhooks, media transfer, and native message APIs.
+This is a standalone PHP implementation of the platform-neutral event contract.
+It includes its own webhook server, persistence, platform adapters, signature
+checks, media/API handling, and reply generation; it does not require Python.
 
 Run:
 
