@@ -12,6 +12,10 @@ from .zulip import ZulipAdapter
 from .matrix import MatrixAdapter
 from .slack import SlackAdapter
 from .google_chat import GoogleChatAdapter
+from .viber import ViberAdapter
+from .whatsapp import WhatsAppAdapter
+from .instagram import InstagramAdapter
+from .teams import TeamsAdapter
 
 
 LIVE_ADAPTERS = {
@@ -25,11 +29,14 @@ LIVE_ADAPTERS = {
     "matrix": MatrixAdapter,
     "slack": SlackAdapter,
     "google_chat": GoogleChatAdapter,
+    "viber": ViberAdapter,
+    "whatsapp": WhatsAppAdapter,
+    "instagram": InstagramAdapter,
+    "teams": TeamsAdapter,
 }
 
 CONFIGURED_PLATFORMS = {
-    "viber", "whatsapp",
-    "instagram", "teams", "kakaotalk", "twitch", "reddit",
+    "kakaotalk", "twitch", "reddit",
 }
 
 

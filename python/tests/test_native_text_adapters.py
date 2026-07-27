@@ -5,6 +5,10 @@ from platforms.matrix import MatrixAdapter
 from platforms.slack import SlackAdapter
 from platforms.zulip import ZulipAdapter
 from platforms.google_chat import GoogleChatAdapter
+from platforms.viber import ViberAdapter
+from platforms.whatsapp import WhatsAppAdapter
+from platforms.instagram import InstagramAdapter
+from platforms.teams import TeamsAdapter
 
 
 class Response:
@@ -47,6 +51,30 @@ class NativeTextAdapterTests(unittest.TestCase):
         event = adapter.parse_event({"message": {"sender": {"name": "users/1"}, "text": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
         self.assertEqual(event.user_id, "users/1"); self.assertEqual(session.calls[0][0], "post")
+
+    def test_viber_event_and_reply(self):
+        session = Session(); adapter = ViberAdapter("token", session)
+        event = adapter.parse_event({"sender": {"id": "u"}, "message": {"type": "text", "text": "hello"}})
+        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        self.assertEqual(event.user_id, "u")
+
+    def test_meta_adapters_parse_events(self):
+        whatsapp = WhatsAppAdapter("token", "phone", Session())
+        event = whatsapp.parse_event({"entry": [{"changes": [{"value": {"messages": [{"from": "u", "type": "text", "text": {"body": "hello"}}]}}]}]})
+        self.assertEqual(event.user_id, "u")
+        instagram = InstagramAdapter("token", "account", Session())
+        self.assertEqual(instagram.parse_event({"sender": {"id": "ig"}, "message": {"text": "hello"}}).user_id, "ig")
+
+    def test_teams_event_and_reply(self):
+        import os
+        session = Session(); adapter = TeamsAdapter("token", session)
+        event = adapter.parse_event({"from": {"id": "u"}, "conversation": {"id": "c"}, "text": "hello"})
+        old = os.environ.get("TEAMS_SERVICE_URL"); os.environ["TEAMS_SERVICE_URL"] = "https://teams.test"
+        try: adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        finally:
+            if old is None: os.environ.pop("TEAMS_SERVICE_URL", None)
+            else: os.environ["TEAMS_SERVICE_URL"] = old
+        self.assertEqual(session.calls[0][0], "post")
 
 
 if __name__ == "__main__": unittest.main()

@@ -13,6 +13,10 @@ from .zulip import ZulipAdapter
 from .matrix import MatrixAdapter
 from .slack import SlackAdapter
 from .google_chat import GoogleChatAdapter
+from .viber import ViberAdapter
+from .whatsapp import WhatsAppAdapter
+from .instagram import InstagramAdapter
+from .teams import TeamsAdapter
 from .registry import create_adapter
 
-__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ZulipAdapter", "MatrixAdapter", "SlackAdapter", "GoogleChatAdapter", "ConfiguredHTTPAdapter", "create_adapter"]
+__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ZulipAdapter", "MatrixAdapter", "SlackAdapter", "GoogleChatAdapter", "ViberAdapter", "WhatsAppAdapter", "InstagramAdapter", "TeamsAdapter", "ConfiguredHTTPAdapter", "create_adapter"]
