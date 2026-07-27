@@ -2,7 +2,7 @@
 
 各言語版は、ローカル開発ではSQLiteを使用します。公開環境や複数インスタンスで運用する場合は、SQLiteファイルではなく外部データベースを使用してください。
 
-このリポジトリの標準実装はSQLiteです。Pythonの共通Webhookサーバーは`DATABASE_URL`、Go版は`GO_DATABASE_URL`でPostgreSQLへ切り替えられます。TypeScript・PHP版は引き続きSQLite実装で、同じRepository契約を保った外部DB実装が必要です。推奨DBはPostgreSQLです。
+このリポジトリの標準実装はSQLiteです。Pythonの共通Webhookサーバーは`DATABASE_URL`、Go版は`GO_DATABASE_URL`、PHP版は`PHP_DATABASE_URL`でPostgreSQLへ切り替えられます。TypeScript版は引き続きSQLite実装で、同じRepository契約を保った外部DB実装が必要です。推奨DBはPostgreSQLです。
 
 ## なぜ外部DBが必要か
 
@@ -51,7 +51,7 @@ CREATE INDEX platform_posts_content_type_id_idx
 DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
 ```
 
-`DATABASE_URL`が設定されている場合、Pythonの`adapter_app.py`はPostgreSQLを使用し、`GO_DATABASE_URL`が設定されている場合、GoサーバーもPostgreSQLを使用します。未設定の場合はSQLiteへフォールバックします。接続文字列やパスワードは`.env.example`に実値を記載せず、ホスティングのSecret設定へ登録してください。Python依存関係には`psycopg[binary]`、Go依存関係には`pgx`が含まれます。
+`DATABASE_URL`が設定されている場合、Pythonの`adapter_app.py`はPostgreSQLを使用し、`GO_DATABASE_URL`が設定されている場合、Goサーバー、`PHP_DATABASE_URL`が設定されている場合、PHPサーバーもPostgreSQLを使用します。未設定の場合はSQLiteへフォールバックします。接続文字列やパスワードは`.env.example`に実値を記載せず、ホスティングのSecret設定へ登録してください。Python依存関係には`psycopg[binary]`、Go依存関係には`pgx`が含まれます。PHPはPDO PostgreSQL拡張が必要です。
 
 ## 言語別の実装方針
 
