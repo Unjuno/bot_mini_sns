@@ -68,6 +68,16 @@ python -m unittest discover -s tests -v
 
 `create_adapter(name, offline=True)`を使うと、アカウントやアクセストークンなしで、17プラットフォームの共通イベント、返信件数制限、コンテンツ種別を検証できます。
 
+起動前の設定確認：
+
+```powershell
+cd python
+python check_setup.py --platform slack
+python check_setup.py --platform slack --offline
+```
+
+不足している環境変数が表示されるため、設定後に通常起動してください。
+
 共通Webhookサーバーを認証なしで試す場合：
 
 ```powershell

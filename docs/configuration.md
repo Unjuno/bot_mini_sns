@@ -35,6 +35,8 @@ PORT=5000
 
 `PLATFORM`は`docs/platforms/README.md`に記載された17プラットフォームのいずれかです。実サービス接続に必要な環境変数も同じ一覧に記載しています。
 
+起動前に`python check_setup.py --platform <platform>`を実行すると、必要な環境変数の不足を確認できます。アカウントなしの確認は`--offline`を付けます。
+
 動作確認だけなら、認証情報なしで次を使えます。
 
 ```powershell
