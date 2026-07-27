@@ -8,7 +8,9 @@ var SupportedPlatforms = []string{
 
 func isSupportedPlatform(name string) bool {
 	for _, platform := range SupportedPlatforms {
-		if platform == name { return true }
+		if platform == name {
+			return true
+		}
 	}
 	return false
 }
@@ -32,7 +34,9 @@ type OutboundReply struct {
 }
 
 func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) OutboundReply {
-	if !isSupportedPlatform(event.Platform) { return OutboundReply{} }
+	if !isSupportedPlatform(event.Platform) {
+		return OutboundReply{}
+	}
 	*posts = append(*posts, event)
 	result := OutboundReply{}
 	for i := len(*posts) - 1; i >= 0 && len(result.Messages) < limit; i-- {

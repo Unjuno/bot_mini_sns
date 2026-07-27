@@ -4,3 +4,4 @@
 Python, PHP, and TypeScript ports. Platform-specific webhook and API adapters
 are intentionally separate from this package.
 Run the normalized webhook server with `go run ./cmd/server`; it listens on `/webhook` and uses `PORT` (default `8080`).
+Events are persisted to `posts.json`; set `POSTS_FILE` to change the path.
