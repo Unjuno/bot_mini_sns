@@ -9,6 +9,9 @@ from .misskey import MisskeyAdapter
 from .mastodon import MastodonAdapter
 from .bluesky import BlueskyAdapter
 from .configured import ConfiguredHTTPAdapter
+from .zulip import ZulipAdapter
+from .matrix import MatrixAdapter
+from .slack import SlackAdapter
 from .registry import create_adapter
 
-__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ConfiguredHTTPAdapter", "create_adapter"]
+__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ZulipAdapter", "MatrixAdapter", "SlackAdapter", "ConfiguredHTTPAdapter", "create_adapter"]

@@ -8,6 +8,9 @@ from .mastodon import MastodonAdapter
 from .bluesky import BlueskyAdapter
 from .configured import ConfiguredHTTPAdapter
 from .telegram import TelegramAdapter
+from .zulip import ZulipAdapter
+from .matrix import MatrixAdapter
+from .slack import SlackAdapter
 
 
 LIVE_ADAPTERS = {
@@ -17,10 +20,13 @@ LIVE_ADAPTERS = {
     "misskey": MisskeyAdapter,
     "mastodon": MastodonAdapter,
     "bluesky": BlueskyAdapter,
+    "zulip": ZulipAdapter,
+    "matrix": MatrixAdapter,
+    "slack": SlackAdapter,
 }
 
 CONFIGURED_PLATFORMS = {
-    "zulip", "matrix", "slack", "google_chat", "viber", "whatsapp",
+    "google_chat", "viber", "whatsapp",
     "instagram", "teams", "kakaotalk", "twitch", "reddit",
 }
 
