@@ -88,6 +88,8 @@ python -m unittest discover -s tests -v
 
 `create_adapter(name, offline=True)`を使うと、アカウントやアクセストークンなしで、17プラットフォームの共通イベント、返信件数制限、コンテンツ種別を検証できます。本番モードは現在LINEのみ検証済みで、未検証のプラットフォームは起動時に明示的に拒否されます。
 
+SlackとWhatsAppを本番Webhookで使う場合は、Bot/APIトークンに加えて、それぞれ`SLACK_SIGNING_SECRET`、`WHATSAPP_APP_SECRET`を設定してください。署名検証情報が無い場合、Webhookを受け付けません。
+
 起動前の設定確認：
 
 ```powershell

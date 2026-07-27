@@ -28,13 +28,13 @@ python -m unittest discover -s tests -v
 | Discord | `DISCORD_BOT_TOKEN` |
 | Zulip | `ZULIP_BASE_URL`, `ZULIP_EMAIL`, `ZULIP_API_KEY` |
 | Matrix | `MATRIX_BASE_URL`, `MATRIX_ACCESS_TOKEN`, `MATRIX_ROOM_ID` |
-| Slack | `SLACK_BOT_TOKEN` |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` |
 | Google Chat | `GOOGLE_CHAT_ACCESS_TOKEN`, `GOOGLE_CHAT_SPACE`（必要時） |
 | Viber | `VIBER_AUTH_TOKEN` |
 | Mastodon | `MASTODON_BASE_URL`, `MASTODON_ACCESS_TOKEN` |
 | Misskey | `MISSKEY_BASE_URL`, `MISSKEY_TOKEN` |
 | Bluesky | `BLUESKY_ACCESS_JWT`, `BLUESKY_REPO` |
-| WhatsApp | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` |
+| WhatsApp | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` |
 | Instagram | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_ACCOUNT_ID` |
 | Teams | `TEAMS_BOT_TOKEN`, `TEAMS_SERVICE_URL` |
 | KakaoTalk | 現在の公式Channel webhookは追加・ブロック通知のみのため、投稿Bot用の実サービス設定は未提供 |
