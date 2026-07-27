@@ -36,16 +36,16 @@
 - コンパイル済みの単一バイナリとして配布できる
 - メモリ使用量を抑えた常駐サーバーを構築しやすい
 - DockerやCloud Runなどへのデプロイに適している
-- Python、PHP、TypeScript版の仕様が安定した後に追加する
+- Python、PHP、TypeScript版と同じ共通Webhook契約を実装済み
 
-## 対応優先順位
+## 対応状況
 
-1. Python
-2. PHP
-3. TypeScript / Node.js
-4. Go
+- Python：LINE本体と17プラットフォームのネイティブアダプター
+- PHP：共通JSON Webhook
+- TypeScript / Node.js：共通JSON Webhook
+- Go：共通JSON Webhook
 
-Pythonは既存コードを基準実装として完成させる。次に、導入先の多いPHPと、Webhook・API開発に適したTypeScriptを対応する。Goは運用規模や性能要件が明確になった段階で追加する。
+4言語のローカルビルド・構文検証・共通Webhookのスモークテストを実行できる状態を完成条件とする。
 
 Rust、Java、C#などは、現時点では正式対応の対象にしない。必要になった場合も、共通仕様とテストを満たす追加実装として検討する。
 
