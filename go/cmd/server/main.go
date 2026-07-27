@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -36,8 +37,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "forbidden"})
 			return
 		}
-		var id int64
-		if _, err := fmt.Sscanf(strings.TrimPrefix(r.URL.Path, "/admin/posts/"), "%d", &id); err != nil {
+		id, err := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/admin/posts/"), 10, 64)
+		if err != nil || id < 1 {
 			w.WriteHeader(http.StatusNotFound)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "post not found"})
 			return
