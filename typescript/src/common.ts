@@ -17,6 +17,7 @@ export type InboundEvent = {
   reply_to_id?: string | null;
   reply_to_uri?: string | null;
   reply_to_cid?: string | null;
+  reply_mode?: string | null;
 };
 
 export type OutboundReply = {
