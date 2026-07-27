@@ -31,6 +31,7 @@ Python版では対象17プラットフォームのアダプターを実装済み
 | [platforms/README.md](platforms/README.md) | プラットフォーム別の料金・使い方・適合性 |
 | [user-flow.md](user-flow.md) | 利用者の操作フロー |
 | [configuration.md](configuration.md) | 環境変数・設定ファイル・デプロイ設定 |
+| [public-release-checklist.md](public-release-checklist.md) | 公開前の確認項目 |
 
 ## 実装設計（2026-07-26 確定）
  
