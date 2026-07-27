@@ -30,11 +30,17 @@ const server = createServer(async (request, response) => {
     return;
   }
   let body = "";
+  let oversized = false;
   request.setEncoding("utf8");
-  request.on("data", (chunk: string) => { body += chunk; if (Buffer.byteLength(body, "utf8") > MAX_EVENT_BODY_BYTES) request.destroy(new Error("request body too large")); });
+  request.on("data", (chunk: string) => { body += chunk; if (Buffer.byteLength(body, "utf8") > MAX_EVENT_BODY_BYTES) oversized = true; });
   request.on("end", async () => {
     let claimedFingerprint: string | null = null;
     try {
+      if (oversized) {
+        response.writeHead(413, { "content-type": "application/json" });
+        response.end(JSON.stringify({ error: "request body too large" }));
+        return;
+      }
       if (configuredPlatform === "line") {
         const signature = request.headers["x-line-signature"];
         const secret = process.env.CHANNEL_SECRET ?? "";
