@@ -2,6 +2,7 @@ package common
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	_ "modernc.org/sqlite"
@@ -28,7 +29,42 @@ func OpenPostStore(path string) (*PostStore, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS processed_events (fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	return &PostStore{db: db}, nil
+}
+
+func (s *PostStore) ClaimEvent(fingerprint string) (*OutboundReply, error) {
+	var raw string
+	err := s.db.QueryRow("SELECT response_json FROM processed_events WHERE fingerprint=?", fingerprint).Scan(&raw)
+	if err == nil {
+		var reply OutboundReply
+		if err := json.Unmarshal([]byte(raw), &reply); err != nil {
+			return nil, err
+		}
+		return &reply, nil
+	}
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
+	_, err = s.db.Exec("INSERT INTO processed_events (fingerprint,response_json) VALUES (?,?)", fingerprint, `{"messages":[]}`)
+	return nil, err
+}
+
+func (s *PostStore) CompleteEvent(fingerprint string, reply OutboundReply) error {
+	raw, err := json.Marshal(reply)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec("UPDATE processed_events SET response_json=? WHERE fingerprint=?", string(raw), fingerprint)
+	return err
+}
+
+func (s *PostStore) ReleaseEvent(fingerprint string) error {
+	_, err := s.db.Exec("DELETE FROM processed_events WHERE fingerprint=?", fingerprint)
+	return err
 }
 
 func (s *PostStore) Close() error { return s.db.Close() }

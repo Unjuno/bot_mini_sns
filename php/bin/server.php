@@ -14,6 +14,7 @@ if (!is_dir($directory)) mkdir($directory, 0775, true);
 $database = new PDO('sqlite:'.$databasePath);
 $database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $database->exec('CREATE TABLE IF NOT EXISTS platform_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL, text TEXT, media_url TEXT, created_at TEXT NOT NULL)');
+$database->exec('CREATE TABLE IF NOT EXISTS processed_events (fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -43,6 +44,17 @@ try {
     }
     $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
     [$event, $sendReply] = runtime_adapter($payload);
+    $fingerprint = hash('sha256', ($event['platform'] ?? $platform) . "\0" . $rawBody);
+    $existing = $database->prepare('SELECT response_json FROM processed_events WHERE fingerprint = :fingerprint');
+    $existing->execute([':fingerprint' => $fingerprint]);
+    $existingResponse = $existing->fetchColumn();
+    if ($existingResponse !== false) {
+        header('Content-Type: application/json');
+        echo $existingResponse;
+        exit;
+    }
+    $reserve = $database->prepare('INSERT INTO processed_events (fingerprint, response_json) VALUES (:fingerprint, :response_json)');
+    $reserve->execute([':fingerprint' => $fingerprint, ':response_json' => '{"messages":[]}']);
     $replyLimit = in_array($event['platform'] ?? '', ['telegram', 'discord'], true) ? 10 : (($event['platform'] ?? '') === 'kakaotalk' ? 3 : 5);
     $reply = process_event_sqlite($database, $event, $replyLimit);
     if ($sendReply !== null) {
@@ -52,13 +64,20 @@ try {
     $response = strtolower(trim((string) (getenv('PLATFORM') ?: ''))) === 'kakaotalk'
         ? kakaotalk_render_reply($reply)
         : $reply;
-    echo json_encode($response, JSON_THROW_ON_ERROR);
+    $encodedResponse = json_encode($response, JSON_THROW_ON_ERROR);
+    $complete = $database->prepare('UPDATE processed_events SET response_json = :response_json WHERE fingerprint = :fingerprint');
+    $complete->execute([':response_json' => $encodedResponse, ':fingerprint' => $fingerprint]);
+    echo $encodedResponse;
 } catch (InvalidArgumentException $error) {
     error_log((string) $error);
     if (http_response_code() < 400) http_response_code(400);
     header('Content-Type: application/json');
     echo json_encode(['error' => 'invalid webhook payload'], JSON_THROW_ON_ERROR);
 } catch (Throwable $error) {
+	if (isset($fingerprint)) {
+		$release = $database->prepare('DELETE FROM processed_events WHERE fingerprint = :fingerprint');
+		$release->execute([':fingerprint' => $fingerprint]);
+	}
     error_log((string) $error);
     if (http_response_code() < 400) http_response_code(500);
     header('Content-Type: application/json');

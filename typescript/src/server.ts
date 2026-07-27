@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { SQLitePostStore, InboundEvent, MAX_EVENT_BODY_BYTES } from "./common";
 import { createConfiguredAdapter } from "./platforms";
 import { verifyHmacSha256, verifyHmacSha256Hex, verifySlackSignature } from "./security";
@@ -22,6 +23,7 @@ const server = createServer((request, response) => {
   request.setEncoding("utf8");
   request.on("data", (chunk: string) => { body += chunk; if (Buffer.byteLength(body, "utf8") > MAX_EVENT_BODY_BYTES) request.destroy(new Error("request body too large")); });
   request.on("end", async () => {
+    let claimedFingerprint: string | null = null;
     try {
       if (configuredPlatform === "line") {
         const signature = request.headers["x-line-signature"];
@@ -53,18 +55,29 @@ const server = createServer((request, response) => {
       }
       const payload = JSON.parse(body);
       const event = adapter ? adapter.parseEvent(payload) : payload as InboundEvent;
+      const fingerprint = createHash("sha256").update(`${event.platform}\0${body}`).digest("hex");
+      const previous = postStore.claimEvent(fingerprint);
+      if (previous) {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify(previous));
+        return;
+      }
+      claimedFingerprint = fingerprint;
       const reply = postStore.processEvent(event, replyLimitForPlatform(event.platform));
       if (adapter) {
         if (typeof adapter.sendReply === "function") await adapter.sendReply(event, reply);
         else if (typeof adapter.renderReply === "function") {
           response.writeHead(200, { "content-type": "application/json" });
+          postStore.completeEvent(fingerprint, reply);
           response.end(JSON.stringify(adapter.renderReply(reply)));
           return;
         }
       }
       response.writeHead(200, { "content-type": "application/json" });
+      postStore.completeEvent(fingerprint, reply);
       response.end(JSON.stringify(reply));
     } catch (error) {
+      if (claimedFingerprint) postStore.releaseEvent(claimedFingerprint);
       console.error("Webhook processing failed", error);
       response.writeHead(400, { "content-type": "application/json" });
       response.end(JSON.stringify({ error: "invalid webhook payload" }));

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -65,15 +67,27 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid webhook payload"})
 		return
 	}
+	fingerprint := fmt.Sprintf("%x", sha256.Sum256(append(append([]byte(event.Platform), 0), rawBody...)))
+	previous, err := postStore.ClaimEvent(fingerprint)
+	if err != nil {
+		http.Error(w, `{"error":"webhook processing failed"}`, http.StatusInternalServerError)
+		return
+	}
+	if previous != nil {
+		_ = json.NewEncoder(w).Encode(previous)
+		return
+	}
 	postsMu.Lock()
 	defer postsMu.Unlock()
 	reply, err := postStore.ProcessEvent(event, replyLimit(event.Platform))
 	if err != nil {
+		_ = postStore.ReleaseEvent(fingerprint)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 	if renderReply != nil {
+		_ = postStore.CompleteEvent(fingerprint, reply)
 		if err := renderReply(w, reply); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -83,10 +97,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	if adapter != nil {
 		if err := adapter(event, reply); err != nil {
+			_ = postStore.ReleaseEvent(fingerprint)
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "platform delivery failed"})
 			return
 		}
+	}
+	if err := postStore.CompleteEvent(fingerprint, reply); err != nil {
+		_ = postStore.ReleaseEvent(fingerprint)
+		http.Error(w, `{"error":"webhook processing failed"}`, http.StatusInternalServerError)
+		return
 	}
 	_ = json.NewEncoder(w).Encode(reply)
 }

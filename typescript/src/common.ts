@@ -37,6 +37,25 @@ export class SQLitePostStore {
       platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL,
       text TEXT, media_url TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
+    this.database.exec(`CREATE TABLE IF NOT EXISTS processed_events (
+      fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+  }
+
+  claimEvent(fingerprint: string): OutboundReply | null {
+    const row = this.database.prepare("SELECT response_json FROM processed_events WHERE fingerprint=?").get(fingerprint) as { response_json: string } | undefined;
+    if (row) return JSON.parse(row.response_json) as OutboundReply;
+    this.database.prepare("INSERT INTO processed_events (fingerprint, response_json) VALUES (?, ?)").run(fingerprint, JSON.stringify({ messages: [] }));
+    return null;
+  }
+
+  completeEvent(fingerprint: string, response: OutboundReply): void {
+    this.database.prepare("UPDATE processed_events SET response_json=? WHERE fingerprint=?").run(JSON.stringify(response), fingerprint);
+  }
+
+  releaseEvent(fingerprint: string): void {
+    this.database.prepare("DELETE FROM processed_events WHERE fingerprint=?").run(fingerprint);
   }
 
   close(): void { this.database.close(); }
