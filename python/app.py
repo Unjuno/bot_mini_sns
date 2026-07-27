@@ -24,7 +24,7 @@ from linebot.models import (
 )
 
 ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT.parent / ".env", override=True)
+load_dotenv(ROOT.parent / ".env", override=False)
 def project_path(value, default):
     path = Path(value or default)
     return path if path.is_absolute() else ROOT / path
