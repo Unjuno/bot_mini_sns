@@ -62,3 +62,25 @@ export class TelegramAdapter {
     }
   }
 }
+
+export class DiscordAdapter {
+  constructor(private readonly token: string, private readonly http: HttpClient = fetch) { if (!token) throw new Error("DISCORD_BOT_TOKEN is required"); }
+  parseEvent(payload: any): InboundEvent {
+    const message = payload.d ?? payload; const user = message.author?.id; const channel = message.channel_id;
+    if (!user || !channel) throw new Error("Discord message has no channel or author");
+    const common = { platform: "discord", user_id: String(user), reply_target: String(channel) };
+    if (message.content) return { ...common, content_type: "text", text: message.content };
+    const attachment = message.attachments?.[0]; if (!attachment?.url) throw new Error("Discord message has no supported content");
+    return { ...common, content_type: DiscordAdapter.contentType(attachment.content_type, attachment.filename), media_url: attachment.url };
+  }
+  async sendReply(event: InboundEvent, reply: OutboundReply): Promise<void> {
+    if (!event.reply_target) throw new Error("Discord reply_target is required");
+    const url = `https://discord.com/api/v10/channels/${event.reply_target}/messages`;
+    for (const message of reply.messages.slice(0, 10)) {
+      if (message.type === "text") await this.request(url, JSON.stringify({ content: message.text, allowed_mentions: { parse: [] } }), "application/json");
+      else { if (!message.media_url) throw new Error(`Discord ${message.type} reply requires media_url`); const media = await this.http(message.media_url, {}); if (!media.ok) throw new Error("Discord media download failed"); const blob = await media.blob(); const form = new FormData(); form.append("payload_json", JSON.stringify({ content: message.text || "", allowed_mentions: { parse: [] } })); form.append("files[0]", blob, `attachment.${message.type}`); await this.request(url, form); }
+    }
+  }
+  private async request(url: string, body: BodyInit, contentType?: string): Promise<void> { const headers: Record<string, string> = { Authorization: `Bot ${this.token}` }; if (contentType) headers["Content-Type"] = contentType; const response = await this.http(url, { method: "POST", headers, body }); if (!response.ok) throw new Error(`Discord API error: ${response.status}`); }
+  static contentType(mime = "", filename = ""): InboundEvent["content_type"] { const value = `${mime} ${filename}`.toLowerCase(); if (value.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/.test(value)) return "image"; if (value.startsWith("audio/") || /\.(mp3|m4a|wav|ogg)$/.test(value)) return "audio"; if (value.startsWith("video/") || /\.(mp4|mov|webm)$/.test(value)) return "video"; return "file"; }
+}
