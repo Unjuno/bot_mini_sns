@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -32,8 +33,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "POST required"})
 		return
 	}
+	rawBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid body"})
+		return
+	}
+	if os.Getenv("PLATFORM") == "line" && !common.VerifyHMACSHA256(rawBody, os.Getenv("CHANNEL_SECRET"), r.Header.Get("X-Line-Signature"), "") {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid LINE signature"})
+		return
+	}
 	var payload map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	if err := json.Unmarshal(rawBody, &payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON"})
 		return

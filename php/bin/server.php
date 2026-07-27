@@ -24,7 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    $payload = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR);
+    $rawBody = file_get_contents('php://input');
+    if (strtolower(trim((string) (getenv('PLATFORM') ?: ''))) === 'line' && !verify_hmac_sha256($rawBody, (string) getenv('CHANNEL_SECRET'), (string) ($_SERVER['HTTP_X_LINE_SIGNATURE'] ?? ''))) {
+        http_response_code(401);
+        throw new RuntimeException('invalid LINE signature');
+    }
+    $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
     [$event, $sendReply] = runtime_adapter($payload);
     $reply = process_event($event, $posts, 5);
     $directory = dirname($storePath);

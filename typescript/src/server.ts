@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { processEvent, InboundEvent } from "./common";
 import { createConfiguredAdapter } from "./platforms";
+import { verifyHmacSha256 } from "./security";
 
 const storePath = process.env.POSTS_FILE ?? "posts.json";
 const posts: InboundEvent[] = existsSync(storePath)
@@ -20,6 +21,15 @@ const server = createServer((request, response) => {
   request.on("data", (chunk: string) => { body += chunk; });
   request.on("end", async () => {
     try {
+      if (configuredPlatform === "line") {
+        const signature = request.headers["x-line-signature"];
+        const secret = process.env.CHANNEL_SECRET ?? "";
+        if (typeof signature !== "string" || !secret || !verifyHmacSha256(Buffer.from(body), secret, signature)) {
+          response.writeHead(401, { "content-type": "application/json" });
+          response.end(JSON.stringify({ error: "invalid LINE signature" }));
+          return;
+        }
+      }
       const payload = JSON.parse(body);
       const event = adapter ? adapter.parseEvent(payload) : payload as InboundEvent;
       const reply = processEvent(event, posts);
