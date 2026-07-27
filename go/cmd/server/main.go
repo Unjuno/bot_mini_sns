@@ -28,6 +28,33 @@ func replyLimit(platform string) int {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/admin/posts/") {
+		expected := os.Getenv("ADMIN_TOKEN")
+		if expected == "" || r.Header.Get("Authorization") != "Bearer "+expected {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "forbidden"})
+			return
+		}
+		var id int64
+		if _, err := fmt.Sscanf(strings.TrimPrefix(r.URL.Path, "/admin/posts/"), "%d", &id); err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "post not found"})
+			return
+		}
+		deleted, err := postStore.SoftDeletePost(id)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "moderation failed"})
+			return
+		}
+		if !deleted {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "post not found"})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": id, "status": "deleted"})
+		return
+	}
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "POST required"})

@@ -23,12 +23,14 @@ func OpenPostStore(path string) (*PostStore, error) {
         content_type TEXT NOT NULL,
         text TEXT,
         media_url TEXT,
+        status TEXT NOT NULL DEFAULT 'published',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
 	if _, err = db.Exec(schema); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
+	_, _ = db.Exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'")
 	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS processed_events (fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -67,6 +69,15 @@ func (s *PostStore) ReleaseEvent(fingerprint string) error {
 	return err
 }
 
+func (s *PostStore) SoftDeletePost(id int64) (bool, error) {
+	result, err := s.db.Exec("UPDATE platform_posts SET status='deleted' WHERE id=? AND status!='deleted'", id)
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	return count > 0, err
+}
+
 func (s *PostStore) Close() error { return s.db.Close() }
 
 func (s *PostStore) ProcessEvent(event InboundEvent, limit int) (OutboundReply, error) {
@@ -90,7 +101,7 @@ func (s *PostStore) ProcessEvent(event InboundEvent, limit int) (OutboundReply, 
 	if _, err = tx.Exec(`INSERT INTO platform_posts (platform,user_id,content_type,text,media_url) VALUES (?,?,?,?,?)`, event.Platform, event.UserID, event.ContentType, event.Text, event.MediaURL); err != nil {
 		return OutboundReply{}, err
 	}
-	rows, err := tx.Query(`SELECT content_type,text,media_url FROM platform_posts WHERE content_type=? ORDER BY id DESC LIMIT ?`, event.ContentType, limit)
+	rows, err := tx.Query(`SELECT content_type,text,media_url FROM platform_posts WHERE content_type=? AND status='published' ORDER BY id DESC LIMIT ?`, event.ContentType, limit)
 	if err != nil {
 		return OutboundReply{}, err
 	}

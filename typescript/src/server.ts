@@ -14,6 +14,16 @@ function replyLimitForPlatform(platform: string): number {
   return 5;
 }
 const server = createServer((request, response) => {
+  const adminMatch = request.url?.match(/^\/admin\/posts\/(\d+)$/);
+  if (request.method === "DELETE" && adminMatch) {
+    const expected = process.env.ADMIN_TOKEN ?? "";
+    const auth = request.headers.authorization ?? "";
+    if (!expected || auth !== `Bearer ${expected}`) { response.writeHead(403); response.end(JSON.stringify({ error: "forbidden" })); return; }
+    const deleted = postStore.softDeletePost(Number(adminMatch[1]));
+    response.writeHead(deleted ? 200 : 404, { "content-type": "application/json" });
+    response.end(JSON.stringify(deleted ? { id: Number(adminMatch[1]), status: "deleted" } : { error: "post not found" }));
+    return;
+  }
   if (request.method !== "POST") {
     response.writeHead(405, { "content-type": "application/json" });
     response.end(JSON.stringify({ error: "POST required" }));

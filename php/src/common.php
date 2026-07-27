@@ -51,6 +51,7 @@ function process_event(array $event, array &$posts, int $limit = 5): array
 /** Persistent SQLite implementation used by the standalone PHP webhook. */
 function process_event_sqlite(PDO $database, array $event, int $limit = 5): array
 {
+    try { $database->exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'"); } catch (Throwable $ignored) {}
     if (!in_array($event['platform'] ?? '', supported_platforms(), true)) {
         throw new InvalidArgumentException('Unsupported platform');
     }
@@ -71,7 +72,7 @@ function process_event_sqlite(PDO $database, array $event, int $limit = 5): arra
             ':content_type' => $event['content_type'], ':text' => $event['text'] ?? null,
             ':media_url' => $event['media_url'] ?? null, ':created_at' => gmdate('c'),
         ]);
-        $select = $database->prepare('SELECT content_type, text, media_url FROM platform_posts WHERE content_type = :content_type ORDER BY id DESC LIMIT :limit');
+        $select = $database->prepare("SELECT content_type, text, media_url FROM platform_posts WHERE content_type = :content_type AND status='published' ORDER BY id DESC LIMIT :limit");
         $select->bindValue(':content_type', $event['content_type'], PDO::PARAM_STR);
         $select->bindValue(':limit', $limit, PDO::PARAM_INT);
         $select->execute();

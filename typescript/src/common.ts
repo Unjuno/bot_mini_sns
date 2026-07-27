@@ -35,8 +35,9 @@ export class SQLitePostStore {
     this.database.exec(`CREATE TABLE IF NOT EXISTS platform_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL,
-      text TEXT, media_url TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      text TEXT, media_url TEXT, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
+    try { this.database.exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'"); } catch { /* existing schema already has it */ }
     this.database.exec(`CREATE TABLE IF NOT EXISTS processed_events (
       fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -58,6 +59,11 @@ export class SQLitePostStore {
     this.database.prepare("DELETE FROM processed_events WHERE fingerprint=?").run(fingerprint);
   }
 
+  softDeletePost(id: number): boolean {
+    const result = this.database.prepare("UPDATE platform_posts SET status='deleted' WHERE id=? AND status!='deleted'").run(id);
+    return Number(result.changes) > 0;
+  }
+
   close(): void { this.database.close(); }
 
   processEvent(event: InboundEvent, limit = 5): OutboundReply {
@@ -68,7 +74,7 @@ export class SQLitePostStore {
     if (event.platform.length > 32 || event.user_id.length > 256 || (event.text?.length ?? 0) > 10000 || (event.media_url?.length ?? 0) > 4096) throw new Error("event field exceeds maximum length");
     const insert = this.database.prepare("INSERT INTO platform_posts (platform,user_id,content_type,text,media_url) VALUES (?,?,?,?,?)");
     insert.run(event.platform, event.user_id, event.content_type, event.text ?? null, event.media_url ?? null);
-    const rows = this.database.prepare("SELECT content_type AS type, COALESCE(text, '') AS text, media_url FROM platform_posts WHERE content_type=? ORDER BY id DESC LIMIT ?").all(event.content_type, limit) as Array<{ type: ContentType; text: string; media_url: string | null }>;
+    const rows = this.database.prepare("SELECT content_type AS type, COALESCE(text, '') AS text, media_url FROM platform_posts WHERE content_type=? AND status='published' ORDER BY id DESC LIMIT ?").all(event.content_type, limit) as Array<{ type: ContentType; text: string; media_url: string | null }>;
     return { messages: rows.map((row) => ({ type: row.type, text: row.text, media_url: row.media_url })) };
   }
 }

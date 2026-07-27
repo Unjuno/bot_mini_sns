@@ -13,10 +13,19 @@ $directory = dirname($databasePath);
 if (!is_dir($directory)) mkdir($directory, 0775, true);
 $database = new PDO('sqlite:'.$databasePath);
 $database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$database->exec('CREATE TABLE IF NOT EXISTS platform_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL, text TEXT, media_url TEXT, created_at TEXT NOT NULL)');
+$database->exec('CREATE TABLE IF NOT EXISTS platform_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, user_id TEXT NOT NULL, content_type TEXT NOT NULL, text TEXT, media_url TEXT, status TEXT NOT NULL DEFAULT \'published\', created_at TEXT NOT NULL)');
+try { $database->exec("ALTER TABLE platform_posts ADD COLUMN status TEXT NOT NULL DEFAULT 'published'"); } catch (Throwable $ignored) {}
 $database->exec('CREATE TABLE IF NOT EXISTS processed_events (fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && preg_match('#^/admin/posts/(\d+)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), $match)) {
+        $expected = (string) getenv('ADMIN_TOKEN');
+        if ($expected === '' || ($_SERVER['HTTP_AUTHORIZATION'] ?? '') !== 'Bearer '.$expected) { http_response_code(403); echo json_encode(['error'=>'forbidden']); exit; }
+        $update = $database->prepare("UPDATE platform_posts SET status='deleted' WHERE id=:id AND status!='deleted'");
+        $update->execute([':id' => (int) $match[1]]);
+        if ($update->rowCount() === 0) { http_response_code(404); echo json_encode(['error'=>'post not found']); exit; }
+        echo json_encode(['id'=>(int) $match[1], 'status'=>'deleted']); exit;
+    }
     http_response_code(405);
     header('Content-Type: application/json');
     echo json_encode(['error' => 'POST required'], JSON_THROW_ON_ERROR);
