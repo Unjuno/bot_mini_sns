@@ -48,11 +48,14 @@ jobs:
 
   php:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: php
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
       - run: php tests/platform_adapters.php
-      - run: php -l php/bin/server.php
-      - run: bash -euo pipefail -c 'for file in php/src/*.php; do php -l "$file"; done'
+      - run: php -l bin/server.php
+      - run: bash -euo pipefail -c 'for file in src/*.php; do php -l "$file"; done'
