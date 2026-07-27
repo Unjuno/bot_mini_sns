@@ -12,6 +12,7 @@ from platforms.teams import TeamsAdapter
 from platforms.twitch import TwitchAdapter
 from platforms.reddit import RedditAdapter
 from platforms.kakaotalk import KakaoTalkAdapter
+from platforms.line import LineAdapter
 
 
 class Response:
@@ -90,6 +91,12 @@ class NativeTextAdapterTests(unittest.TestCase):
         event = adapter.parse_event({"userRequest": {"user": {"id": "u"}, "utterance": "hello"}})
         adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
         self.assertEqual(event.user_id, "u")
+
+    def test_line_event_and_reply(self):
+        session = Session(); adapter = LineAdapter("token", session)
+        event = adapter.parse_event({"events": [{"source": {"userId": "u"}, "message": {"type": "text", "text": "hello"}}]})
+        adapter.send_reply(event, OutboundReply(messages=[OutboundMessage(type="text", text="reply")]))
+        self.assertEqual(event.user_id, "u"); self.assertEqual(session.calls[0][2]["json"]["to"], "u")
 
 
 if __name__ == "__main__": unittest.main()

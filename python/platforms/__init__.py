@@ -20,6 +20,7 @@ from .teams import TeamsAdapter
 from .twitch import TwitchAdapter
 from .reddit import RedditAdapter
 from .kakaotalk import KakaoTalkAdapter
+from .line import LineAdapter
 from .registry import create_adapter
 
-__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ZulipAdapter", "MatrixAdapter", "SlackAdapter", "GoogleChatAdapter", "ViberAdapter", "WhatsAppAdapter", "InstagramAdapter", "TeamsAdapter", "TwitchAdapter", "RedditAdapter", "KakaoTalkAdapter", "ConfiguredHTTPAdapter", "create_adapter"]
+__all__ = ["PlatformAdapter", "PlatformCapabilities", "PLATFORM_CATALOG", "MockPlatformAdapter", "TelegramAdapter", "DiscordAdapter", "MisskeyAdapter", "MastodonAdapter", "BlueskyAdapter", "ZulipAdapter", "MatrixAdapter", "SlackAdapter", "GoogleChatAdapter", "ViberAdapter", "WhatsAppAdapter", "InstagramAdapter", "TeamsAdapter", "TwitchAdapter", "RedditAdapter", "KakaoTalkAdapter", "LineAdapter", "ConfiguredHTTPAdapter", "create_adapter"]

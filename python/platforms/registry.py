@@ -19,10 +19,11 @@ from .teams import TeamsAdapter
 from .twitch import TwitchAdapter
 from .reddit import RedditAdapter
 from .kakaotalk import KakaoTalkAdapter
+from .line import LineAdapter
 
 
 LIVE_ADAPTERS = {
-    "line": None,  # LINE remains hosted by the existing Flask app during migration.
+    "line": LineAdapter,
     "telegram": TelegramAdapter,
     "discord": DiscordAdapter,
     "misskey": MisskeyAdapter,
@@ -53,7 +54,5 @@ def create_adapter(platform: str, *, offline: bool = False, **kwargs) -> Platfor
         return ConfiguredHTTPAdapter(platform, **kwargs)
     adapter_type = LIVE_ADAPTERS.get(platform)
     if adapter_type is None:
-        if platform == "line":
-            raise NotImplementedError("LINE uses the existing Flask app entrypoint")
         raise NotImplementedError(f"Live adapter is not implemented: {platform}")
     return adapter_type(**kwargs)
