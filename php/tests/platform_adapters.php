@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__.'/../src/common.php';
 foreach (glob(__DIR__.'/../src/{http,platforms,telegram,discord,mastodon,misskey,bluesky,slack,matrix,whatsapp,viber,zulip,google_chat,teams,instagram,reddit,twitch,kakaotalk}.php', GLOB_BRACE) as $file) require_once $file;
 require_once __DIR__.'/../src/security.php';
 
@@ -30,6 +31,14 @@ foreach ($cases as $platform => $parse) {
     if (($event['platform'] ?? '') !== $platform || ($event['content_type'] ?? '') !== 'text') throw new RuntimeException("{$platform} contract failed: ".json_encode($event));
 }
 echo 'ok '.count($cases)." adapters\n";
+
+$sharedPosts = [];
+process_event(['platform' => 'line', 'user_id' => 'u', 'content_type' => 'text', 'text' => 'line'], $sharedPosts);
+$sharedReply = process_event(['platform' => 'telegram', 'user_id' => 'u2', 'content_type' => 'text', 'text' => 'telegram'], $sharedPosts);
+if (array_column($sharedReply['messages'], 'text') !== ['telegram', 'line']) throw new RuntimeException('cross-platform core contract failed');
+try { process_event(['platform' => 'line', 'user_id' => '', 'content_type' => 'text'], $sharedPosts); throw new RuntimeException('invalid event accepted'); } catch (InvalidArgumentException) {}
+try { process_event(['platform' => 'line', 'user_id' => 'u', 'content_type' => 'unknown'], $sharedPosts); throw new RuntimeException('invalid content type accepted'); } catch (InvalidArgumentException) {}
+echo "ok common core validation\n";
 
 $signedBody = '{"events":[]}';
 $base64Signature = base64_encode(hash_hmac('sha256', $signedBody, 'secret', true));

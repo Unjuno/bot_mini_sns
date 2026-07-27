@@ -78,6 +78,13 @@ func TestImplementedAdaptersParseRepresentativeEvents(t *testing.T) {
 	}
 }
 
+func TestCommonCoreValidatesAndSharesSameTypeAcrossPlatforms(t *testing.T) {
+	posts := []InboundEvent{{Platform: "line", UserID: "u", ContentType: "text", Text: "line"}}
+	reply, err := ProcessEvent(InboundEvent{Platform: "telegram", UserID: "u2", ContentType: "text", Text: "telegram"}, &posts, 5)
+	if err != nil || len(reply.Messages) != 2 || reply.Messages[0].Text != "telegram" || reply.Messages[1].Text != "line" { t.Fatalf("unexpected cross-platform reply: %#v, %v", reply, err) }
+	if _, err := ProcessEvent(InboundEvent{Platform: "line", ContentType: "unknown"}, &posts, 5); err == nil { t.Fatal("invalid event accepted") }
+}
+
 type adapterRoundTripper struct{}
 
 func (adapterRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {

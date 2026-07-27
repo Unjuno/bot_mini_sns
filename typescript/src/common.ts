@@ -28,6 +28,13 @@ export function processEvent(event: InboundEvent, posts: InboundEvent[], limit =
   if (!(supportedPlatforms as readonly string[]).includes(event.platform)) {
     throw new Error(`Unsupported platform: ${event.platform}`);
   }
+  if (!event.user_id || !event.content_type) {
+    throw new Error("platform, user_id, and content_type are required");
+  }
+  if (!(["text", "image", "audio", "video", "file"] as string[]).includes(event.content_type)) {
+    throw new Error(`Unsupported content type: ${event.content_type}`);
+  }
+  if (!Number.isInteger(limit) || limit < 1) throw new Error("limit must be a positive integer");
   posts.push(event);
   const selected = posts
     .filter((post) => post.content_type === event.content_type)

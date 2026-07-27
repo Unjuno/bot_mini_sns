@@ -48,6 +48,12 @@ func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) (Outboun
 	if event.UserID == "" || event.ContentType == "" {
 		return OutboundReply{}, fmt.Errorf("platform, user_id, and content_type are required")
 	}
+	if event.ContentType != "text" && event.ContentType != "image" && event.ContentType != "audio" && event.ContentType != "video" && event.ContentType != "file" {
+		return OutboundReply{}, fmt.Errorf("unsupported content type: %s", event.ContentType)
+	}
+	if limit < 1 {
+		return OutboundReply{}, fmt.Errorf("limit must be a positive integer")
+	}
 	*posts = append(*posts, event)
 	result := OutboundReply{}
 	for i := len(*posts) - 1; i >= 0 && len(result.Messages) < limit; i-- {

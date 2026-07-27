@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { supportedPlatforms } from "./common";
+import { processEvent, supportedPlatforms } from "./common";
 import { LineAdapter, TelegramAdapter, DiscordAdapter, MastodonAdapter, MisskeyAdapter, BlueskyAdapter, SlackAdapter, MatrixAdapter, WhatsAppAdapter, ViberAdapter, ZulipAdapter, GoogleChatAdapter, TeamsAdapter, InstagramAdapter, RedditAdapter, TwitchAdapter, KakaoTalkAdapter } from "./platforms";
 
 test("every implemented TypeScript adapter parses a representative webhook", () => {
@@ -57,4 +57,13 @@ test("every TypeScript adapter sends a text reply through the HTTP seam", async 
   const kakao = new KakaoTalkAdapter().renderReply(reply);
   assert.equal(kakao.version, "2.0");
   assert.equal(calls.length, 16);
+});
+
+test("TypeScript common core validates events and shares same-type posts across platforms", () => {
+  const posts: any[] = [];
+  processEvent({ platform: "line", user_id: "u", content_type: "text", text: "line" }, posts);
+  const reply = processEvent({ platform: "telegram", user_id: "u2", content_type: "text", text: "telegram" }, posts);
+  assert.deepEqual(reply.messages.map((message) => message.text), ["telegram", "line"]);
+  assert.throws(() => processEvent({ platform: "line", user_id: "", content_type: "text" }, posts), /required/);
+  assert.throws(() => processEvent({ platform: "line", user_id: "u", content_type: "unknown" as any }, posts), /Unsupported content type/);
 });
