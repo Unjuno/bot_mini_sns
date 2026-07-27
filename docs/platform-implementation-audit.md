@@ -21,7 +21,7 @@
 | WhatsApp | あり | **オフラインのみ** | Webhook署名、メディアID取得、24時間制限を確認する |
 | Instagram | あり。WhatsAppとは別実装 | **オフラインのみ** | Professional accountのWebhook、権限、メディア形式を確認する |
 | Teams | あり | **オフラインのみ** | Bot Framework署名、serviceUrl、conversation referenceを確認する |
-| KakaoTalk | 仕様上の対象範囲を要確認 | **オフラインのみ** | 一般的なChannel webhookを汎用SNS受信と見なさない。現在は本番アダプター登録なし |
+| KakaoTalk | Kakao Open Builderの受信・返信レンダリング | **オフラインのみ** | 一般的なChannel webhookを汎用SNS受信と見なさない。Open Builderの実環境で形式・運用条件を確認する |
 | Twitch | あり。テキストチャットのみ | **オフラインのみ** | EventSub署名・subscription管理・Helix返信を確認する |
 | Reddit | あり。コメント返信の最小経路 | **オフラインのみ** | OAuth、thing ID、APIエラー、実サブレディットで確認する |
 

@@ -36,7 +36,7 @@ Pythonの`python/platforms/`に、次の17種類のアダプターを登録し�
 
 LINE、Telegram、Discord、Zulip、Matrix、Slack、Google Chat、Viber、Mastodon、Misskey、Bluesky、WhatsApp、Instagram、Microsoft Teams、KakaoTalk、Twitch、Reddit
 
-Python版には各サービスの受信形式と送信APIへ接続するアダプターの骨格がありますが、全サービスで全メディア種別の実サービス送受信が完了しているわけではありません。実装状況は[プラットフォーム調査・実装照合](docs/platform-implementation-audit.md)を確認してください。実サービスで利用するには、各サービス側のBot登録・Webhook設定・認証情報が別途必要です。PHP・TypeScript・Go版は、各サービスのWebhookを共通JSONへ変換した後段として利用します。
+Python版には各サービスの受信形式と送信APIへ接続するアダプターがあり、PHP・TypeScript・Go版にも同じ17サービスのWebhook解析・送信アダプターがあります。ただし、全サービスで全メディア種別の実サービス送受信が完了しているわけではありません。実装状況は[プラットフォーム調査・実装照合](docs/platform-implementation-audit.md)を確認してください。実サービスで利用するには、各サービス側のBot登録・Webhook設定・認証情報が別途必要です。
 
 ## Python版を起動する
 
