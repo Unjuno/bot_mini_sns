@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 foreach (glob(__DIR__.'/../src/{platforms,telegram,discord,mastodon,misskey,bluesky,slack,matrix,whatsapp,viber,zulip,google_chat,teams,instagram,reddit,twitch,kakaotalk}.php', GLOB_BRACE) as $file) require_once $file;
+require_once __DIR__.'/../src/security.php';
 
 $cases = [
     'line' => fn() => line_parse_event(['events' => [['source' => ['userId' => 'u'], 'message' => ['type' => 'text', 'text' => 'x']]]]),
@@ -29,3 +30,12 @@ foreach ($cases as $platform => $parse) {
     if (($event['platform'] ?? '') !== $platform || ($event['content_type'] ?? '') !== 'text') throw new RuntimeException("{$platform} contract failed: ".json_encode($event));
 }
 echo 'ok '.count($cases)." adapters\n";
+
+$signedBody = '{"events":[]}';
+$base64Signature = base64_encode(hash_hmac('sha256', $signedBody, 'secret', true));
+if (!verify_hmac_sha256($signedBody, 'secret', 'Bearer '.$base64Signature, 'Bearer ')) throw new RuntimeException('base64 signature contract failed');
+if (verify_hmac_sha256($signedBody, 'secret', 'Bearer invalid', 'Bearer ')) throw new RuntimeException('invalid base64 signature accepted');
+$hexSignature = hash_hmac('sha256', 'v0:123:'.$signedBody, 'secret');
+if (!verify_slack_signature($signedBody, 'secret', '123', 'v0='.$hexSignature)) throw new RuntimeException('Slack signature contract failed');
+if (verify_slack_signature($signedBody, 'secret', '123', 'v0=invalid')) throw new RuntimeException('invalid Slack signature accepted');
+echo "ok webhook signatures\n";
