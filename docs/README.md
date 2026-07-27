@@ -33,6 +33,7 @@ Python版では対象17プラットフォームの共通契約とオフライン
 | [platforms/README.md](platforms/README.md) | プラットフォーム別の料金・使い方・適合性 |
 | [user-flow.md](user-flow.md) | 利用者の操作フロー |
 | [configuration.md](configuration.md) | 環境変数・設定ファイル・デプロイ設定 |
+| [external-database.md](external-database.md) | SQLiteから外部データベースへ切り替える実装契約と手順 |
 | [development.md](development.md) | 開発環境・検証・実装境界 |
 | [public-release-checklist.md](public-release-checklist.md) | 公開前の確認項目 |
 

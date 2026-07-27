@@ -18,8 +18,6 @@
 | --- | --- | --- |
 | アプリ設定 | `CONFIG_PATH` | `python/config.json` |
 | SQLite DB | `DATABASE_PATH` | `python/sns_bot.db` |
-| TypeScript SQLite DB | `TYPESCRIPT_DATABASE_PATH` | `typescript/posts.sqlite` |
-| Go SQLite DB | `GO_DATABASE_PATH` | `go/posts.sqlite` |
 | メディア保存先 | `MEDIA_DIR` | `python/uploaded_media` |
 | HTTPポート | `PORT` | `5000` |
 
@@ -41,6 +39,8 @@ PORT=5000
 Renderなどでこの経路を公開する場合のStart Commandは`gunicorn adapter_app:app`です。LINE専用の`app.py`を使う場合は`gunicorn app:app`にします。`.env.example`はリポジトリルートに1つだけあり、`python`から起動しても同じファイルを読み込みます。
 
 PHP版は`PHP_DATABASE_PATH`（既定値：`php/bin/posts.sqlite`）へSQLiteで投稿履歴を保存します。公開ホスティングでは、このパスに書き込み権限があることを確認してください。
+
+外部データベースへ切り替える場合の共通契約、PostgreSQLのスキーマ、各言語での実装方針は[外部データベースへの切り替え](external-database.md)を参照してください。現行コードはSQLiteを標準実装としているため、`DATABASE_URL`を設定するだけでは外部DBへ切り替わりません。各言語版のRepository実装とマイグレーションが必要です。
 
 起動前に`python check_setup.py --platform <platform>`を実行すると、必要な環境変数の不足を確認できます。アカウントなしの確認は`--offline`を付けます。
 
