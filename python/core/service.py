@@ -67,16 +67,13 @@ class SQLitePostRepository:
     def claim_event(self, fingerprint: str) -> dict | None:
         """Return the previous response for a duplicate, otherwise reserve it."""
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT response_json FROM processed_events WHERE fingerprint=?",
-                (fingerprint,),
-            ).fetchone()
-            if row:
-                return json.loads(row[0])
-            connection.execute(
-                "INSERT INTO processed_events (fingerprint, response_json, created_at) VALUES (?, ?, ?)",
+            inserted = connection.execute(
+                "INSERT INTO processed_events (fingerprint, response_json, created_at) VALUES (?, ?, ?) ON CONFLICT(fingerprint) DO NOTHING",
                 (fingerprint, json.dumps({"messages": []}), datetime.now(timezone.utc).isoformat()),
-            )
+            ).rowcount
+            if inserted == 0:
+                row = connection.execute("SELECT response_json FROM processed_events WHERE fingerprint=?", (fingerprint,)).fetchone()
+                return json.loads(row[0]) if row else None
         return None
 
     def complete_event(self, fingerprint: str, response: dict) -> None:
@@ -168,11 +165,11 @@ class PostgresPostRepository:
 
     def claim_event(self, fingerprint: str) -> dict | None:
         with self._connect() as connection, connection.cursor() as cursor:
-            cursor.execute("SELECT response_json FROM processed_events WHERE fingerprint=%s", (fingerprint,))
-            row = cursor.fetchone()
-            if row:
-                return json.loads(row[0])
-            cursor.execute("INSERT INTO processed_events (fingerprint, response_json) VALUES (%s, %s)", (fingerprint, json.dumps({"messages": []})))
+            cursor.execute("INSERT INTO processed_events (fingerprint, response_json) VALUES (%s, %s) ON CONFLICT (fingerprint) DO NOTHING RETURNING fingerprint", (fingerprint, json.dumps({"messages": []})))
+            if cursor.fetchone() is None:
+                cursor.execute("SELECT response_json FROM processed_events WHERE fingerprint=%s", (fingerprint,))
+                row = cursor.fetchone()
+                return json.loads(row[0]) if row else None
         return None
 
     def complete_event(self, fingerprint: str, response: dict) -> None:
