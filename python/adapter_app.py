@@ -57,6 +57,7 @@ def webhook():
     if adapter is None:
         return jsonify({"error": startup_error}), 503
     try:
+        delivery_failed = False
         raw_body = request.get_data(cache=True)
         headers = dict(request.headers)
         fingerprint = hashlib.sha256(PLATFORM.encode() + b"\0" + raw_body).hexdigest()
@@ -71,7 +72,9 @@ def webhook():
         if previous is not None:
             return jsonify(previous), 200
         reply = process_event(event, repository, adapter.capabilities.max_reply_items or 5)
+        delivery_failed = True
         adapter.send_reply(event, reply)
+        delivery_failed = False
         response = reply.model_dump()
         repository.complete_event(fingerprint, response)
         return jsonify(response), 200
@@ -80,6 +83,8 @@ def webhook():
         return jsonify({"error": "invalid webhook payload"}), 400
     except Exception:
         app.logger.exception("Platform webhook failed")
+        if 'delivery_failed' in locals() and delivery_failed:
+            return jsonify({"error": "platform delivery failed"}), 502
         return jsonify({"error": "webhook processing failed"}), 500
 
 
