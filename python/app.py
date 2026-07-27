@@ -58,6 +58,9 @@ def now():
 def db_connection():
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA busy_timeout = 5000")
+    connection.execute("PRAGMA journal_mode = WAL")
     try:
         yield connection
         connection.commit()
@@ -235,13 +238,13 @@ def handle_processing_error(event, error, context):
     reply_error(event)
 
 
-def recent_posts(user_id, post_type, limit=5):
+def recent_posts(post_type, limit=5):
     with db_connection() as db:
         return db.execute(
             """SELECT type, text, media_url, duration_ms FROM posts
-               WHERE user_id=? AND type=? AND status='published'
+               WHERE type=? AND status='published'
                ORDER BY id DESC LIMIT ?""",
-            (user_id, post_type, limit),
+            (post_type, limit),
         ).fetchall()
 
 
@@ -342,7 +345,7 @@ def handle_text(event):
             reply(event, "空の投稿はできません。")
             return
         save_post(user["id"], "text", text)
-        posts = recent_posts(user["id"], "text")
+        posts = recent_posts("text")
         messages = [
             TextSendMessage(text=post["text"][:5000])
             for post in posts[:5]
@@ -372,7 +375,7 @@ def handle_media(event, message, media_type, extension, mime_type):
         duration_ms = getattr(message, "duration", None)
         save_post(user["id"], media_type, media_url=saved_media_url, mime_type=mime_type,
                   duration_ms=duration_ms)
-        reply_same_type(event, recent_posts(user["id"], media_type))
+        reply_same_type(event, recent_posts(media_type))
     except Exception as error:
         handle_processing_error(event, error, f"{media_type} message")
 

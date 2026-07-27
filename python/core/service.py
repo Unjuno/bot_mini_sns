@@ -80,6 +80,9 @@ class SQLitePostRepository:
     @contextmanager
     def _connect(self):
         connection = sqlite3.connect(self.path)
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA busy_timeout = 5000")
+        connection.execute("PRAGMA journal_mode = WAL")
         try:
             yield connection
             connection.commit()
