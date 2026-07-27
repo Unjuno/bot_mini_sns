@@ -32,7 +32,7 @@ jobs:
           cache: npm
           cache-dependency-path: typescript/package-lock.json
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm test
 
   go:
     runs-on: ubuntu-latest
@@ -53,5 +53,6 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-      - run: php -l php/src/common.php
+      - run: php tests/platform_adapters.php
       - run: php -l php/bin/server.php
+      - run: bash -euo pipefail -c 'for file in php/src/*.php; do php -l "$file"; done'
