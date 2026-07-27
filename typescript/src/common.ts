@@ -1,5 +1,11 @@
 export type ContentType = "text" | "image" | "audio" | "video" | "file";
 
+export const supportedPlatforms = [
+  "line", "telegram", "discord", "zulip", "matrix", "slack", "google_chat",
+  "viber", "mastodon", "misskey", "bluesky", "whatsapp", "instagram", "teams",
+  "kakaotalk", "twitch", "reddit",
+] as const;
+
 export type InboundEvent = {
   platform: string;
   user_id: string;
@@ -13,6 +19,9 @@ export type OutboundReply = {
 };
 
 export function processEvent(event: InboundEvent, posts: InboundEvent[], limit = 5): OutboundReply {
+  if (!(supportedPlatforms as readonly string[]).includes(event.platform)) {
+    throw new Error(`Unsupported platform: ${event.platform}`);
+  }
   posts.push(event);
   const selected = posts
     .filter((post) => post.platform === event.platform

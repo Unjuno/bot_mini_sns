@@ -1,5 +1,18 @@
 package common
 
+var SupportedPlatforms = []string{
+	"line", "telegram", "discord", "zulip", "matrix", "slack", "google_chat",
+	"viber", "mastodon", "misskey", "bluesky", "whatsapp", "instagram", "teams",
+	"kakaotalk", "twitch", "reddit",
+}
+
+func isSupportedPlatform(name string) bool {
+	for _, platform := range SupportedPlatforms {
+		if platform == name { return true }
+	}
+	return false
+}
+
 type InboundEvent struct {
 	Platform    string `json:"platform"`
 	UserID      string `json:"user_id"`
@@ -19,6 +32,7 @@ type OutboundReply struct {
 }
 
 func ProcessEvent(event InboundEvent, posts *[]InboundEvent, limit int) OutboundReply {
+	if !isSupportedPlatform(event.Platform) { return OutboundReply{} }
 	*posts = append(*posts, event)
 	result := OutboundReply{}
 	for i := len(*posts) - 1; i >= 0 && len(result.Messages) < limit; i-- {
