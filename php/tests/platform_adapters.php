@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-foreach (glob(__DIR__.'/../src/{platforms,telegram,discord,mastodon,misskey,bluesky,slack,matrix,whatsapp,viber,zulip,google_chat,teams,instagram,reddit,twitch}.php', GLOB_BRACE) as $file) require_once $file;
+foreach (glob(__DIR__.'/../src/{platforms,telegram,discord,mastodon,misskey,bluesky,slack,matrix,whatsapp,viber,zulip,google_chat,teams,instagram,reddit,twitch,kakaotalk}.php', GLOB_BRACE) as $file) require_once $file;
 
 $cases = [
     'line' => fn() => line_parse_event(['events' => [['source' => ['userId' => 'u'], 'message' => ['type' => 'text', 'text' => 'x']]]]),
@@ -21,6 +21,7 @@ $cases = [
     'instagram' => fn() => instagram_parse_event(['entry' => [['messaging' => [['sender' => ['id' => 'u'], 'message' => ['text' => 'x']]]]]]),
     'reddit' => fn() => reddit_parse_event(['data' => ['author' => ['name' => 'u'], 'body' => 'x', 'name' => 't1_x']]),
     'twitch' => fn() => twitch_parse_event(['event' => ['chatter_user_id' => 'u', 'message_id' => 'm', 'message' => 'x']]),
+    'kakaotalk' => fn() => kakaotalk_parse_event(['userRequest' => ['user' => ['id' => 'u'], 'utterance' => 'x']]),
 ];
 
 foreach ($cases as $platform => $parse) {

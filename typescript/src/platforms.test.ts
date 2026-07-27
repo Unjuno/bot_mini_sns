@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { supportedPlatforms } from "./common";
-import { LineAdapter, TelegramAdapter, DiscordAdapter, MastodonAdapter, MisskeyAdapter, BlueskyAdapter, SlackAdapter, MatrixAdapter, WhatsAppAdapter, ViberAdapter, ZulipAdapter, GoogleChatAdapter, TeamsAdapter, InstagramAdapter, RedditAdapter, TwitchAdapter } from "./platforms";
+import { LineAdapter, TelegramAdapter, DiscordAdapter, MastodonAdapter, MisskeyAdapter, BlueskyAdapter, SlackAdapter, MatrixAdapter, WhatsAppAdapter, ViberAdapter, ZulipAdapter, GoogleChatAdapter, TeamsAdapter, InstagramAdapter, RedditAdapter, TwitchAdapter, KakaoTalkAdapter } from "./platforms";
 
 test("every implemented TypeScript adapter parses a representative webhook", () => {
   const cases: Array<[string, any, (payload: any) => any]> = [
@@ -21,6 +21,7 @@ test("every implemented TypeScript adapter parses a representative webhook", () 
     ["instagram", { entry: [{ messaging: [{ sender: { id: "u" }, message: { text: "x" } }] }] }, new InstagramAdapter("token", "account").parseEvent.bind(new InstagramAdapter("token", "account"))],
     ["reddit", { data: { author: { name: "u" }, body: "x", name: "t1_x" } }, new RedditAdapter("token").parseEvent.bind(new RedditAdapter("token"))],
     ["twitch", { event: { chatter_user_id: "u", message_id: "m", message: "x" } }, new TwitchAdapter("t", "c", "b", "s").parseEvent.bind(new TwitchAdapter("t", "c", "b", "s"))],
+    ["kakaotalk", { userRequest: { user: { id: "u" }, utterance: "x" } }, new KakaoTalkAdapter().parseEvent.bind(new KakaoTalkAdapter())],
   ];
   for (const [platform, payload, parse] of cases) {
     const event = parse(payload);

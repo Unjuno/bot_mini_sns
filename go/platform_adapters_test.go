@@ -56,6 +56,9 @@ func TestImplementedAdaptersParseRepresentativeEvents(t *testing.T) {
 		{"twitch", func() (InboundEvent, error) {
 			return TwitchAdapter{}.ParseEvent(map[string]any{"event": map[string]any{"chatter_user_id": "u", "message_id": "m", "message": "x"}})
 		}, "twitch"},
+		{"kakaotalk", func() (InboundEvent, error) {
+			return KakaoTalkAdapter{}.ParseEvent(map[string]any{"userRequest": map[string]any{"user": map[string]any{"id": "u"}, "utterance": "x"}})
+		}, "kakaotalk"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
