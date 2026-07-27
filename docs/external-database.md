@@ -2,7 +2,7 @@
 
 各言語版は、ローカル開発ではSQLiteを使用します。公開環境や複数インスタンスで運用する場合は、SQLiteファイルではなく外部データベースを使用してください。
 
-このリポジトリの標準実装はSQLiteです。外部DB接続は各言語版・各デプロイ環境で実装する拡張ポイントとして扱います。推奨DBはPostgreSQLです。
+このリポジトリの標準実装はSQLiteです。Pythonの共通Webhookサーバーは`DATABASE_URL`でPostgreSQLへ切り替えられます。TypeScript・Go・PHP版は引き続きSQLite実装で、同じRepository契約を保った外部DB実装が必要です。推奨DBはPostgreSQLです。
 
 ## なぜ外部DBが必要か
 
@@ -51,7 +51,7 @@ CREATE INDEX platform_posts_content_type_id_idx
 DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
 ```
 
-`DATABASE_URL`が設定されている場合は外部DBを使用し、未設定の場合は各言語のSQLite設定へフォールバックする構成にすると、ローカル開発と本番運用を切り替えやすくなります。接続文字列やパスワードは`.env.example`に実値を記載せず、ホスティングのSecret設定へ登録してください。
+`DATABASE_URL`が設定されている場合、Pythonの`adapter_app.py`はPostgreSQLを使用し、未設定の場合はSQLiteへフォールバックします。接続文字列やパスワードは`.env.example`に実値を記載せず、ホスティングのSecret設定へ登録してください。Python依存関係には`psycopg[binary]`が含まれます。
 
 ## 言語別の実装方針
 

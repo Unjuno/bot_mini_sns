@@ -123,6 +123,73 @@ class SQLitePostRepository:
             connection.close()
 
 
+class PostgresPostRepository:
+    """PostgreSQL repository for multi-process or ephemeral deployments.
+
+    psycopg is imported lazily so SQLite-only local installations stay lightweight.
+    """
+
+    def __init__(self, url: str):
+        try:
+            import psycopg
+        except ImportError as error:
+            raise RuntimeError("DATABASE_URL requires the optional 'psycopg[binary]' package") from error
+        self._psycopg = psycopg
+        self.url = url
+        with self._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """CREATE TABLE IF NOT EXISTS platform_posts (
+                        id BIGSERIAL PRIMARY KEY, platform TEXT NOT NULL,
+                        user_id TEXT NOT NULL, content_type TEXT NOT NULL,
+                        text TEXT, media_url TEXT, status TEXT NOT NULL DEFAULT 'published',
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )"""
+                )
+                cursor.execute("CREATE INDEX IF NOT EXISTS platform_posts_content_type_id_idx ON platform_posts (content_type, id DESC)")
+                cursor.execute(
+                    """CREATE TABLE IF NOT EXISTS processed_events (
+                        fingerprint TEXT PRIMARY KEY, response_json TEXT NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )"""
+                )
+
+    @contextmanager
+    def _connect(self):
+        connection = self._psycopg.connect(self.url)
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def claim_event(self, fingerprint: str) -> dict | None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT response_json FROM processed_events WHERE fingerprint=%s", (fingerprint,))
+            row = cursor.fetchone()
+            if row:
+                return json.loads(row[0])
+            cursor.execute("INSERT INTO processed_events (fingerprint, response_json) VALUES (%s, %s)", (fingerprint, json.dumps({"messages": []})))
+        return None
+
+    def complete_event(self, fingerprint: str, response: dict) -> None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute("UPDATE processed_events SET response_json=%s WHERE fingerprint=%s", (json.dumps(response), fingerprint))
+
+    def save(self, post: StoredPost) -> None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute("INSERT INTO platform_posts (platform,user_id,content_type,text,media_url) VALUES (%s,%s,%s,%s,%s)", (post.platform, post.user_id, post.content_type, post.text, post.media_url))
+
+    def recent(self, platform: str, user_id: str, content_type: str, limit: int) -> list[StoredPost]:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT platform,user_id,content_type,text,media_url FROM platform_posts WHERE content_type=%s AND status='published' ORDER BY id DESC LIMIT %s", (content_type, limit))
+            rows = cursor.fetchall()
+        return [StoredPost(*row) for row in rows]
+
+
 def process_event(
     event: InboundEvent,
     repository: PostRepository,

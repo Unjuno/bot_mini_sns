@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from core.service import SQLitePostRepository, process_event
+from core.service import PostgresPostRepository, SQLitePostRepository, process_event
 from platforms import create_adapter
 from platforms.catalog import PRODUCTION_READY
 from platforms.security import verify_hmac_sha256, verify_hmac_sha256_hex, verify_slack_signature
@@ -19,13 +19,14 @@ from platforms.security import verify_hmac_sha256, verify_hmac_sha256_hex, verif
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT.parent / ".env", override=False)
 PLATFORM = os.getenv("PLATFORM", "").strip().lower()
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DATABASE_PATH = Path(os.getenv("ADAPTER_DATABASE_PATH", ROOT / "adapter_posts.db"))
 if not DATABASE_PATH.is_absolute():
     DATABASE_PATH = ROOT / DATABASE_PATH
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
-repository = SQLitePostRepository(DATABASE_PATH)
+repository = PostgresPostRepository(DATABASE_URL) if DATABASE_URL else SQLitePostRepository(DATABASE_PATH)
 adapter = None
 startup_error = None
 if PLATFORM:
