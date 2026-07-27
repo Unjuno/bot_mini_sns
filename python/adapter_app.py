@@ -13,7 +13,7 @@ from platforms import create_adapter
 
 
 ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT.parent / ".env", override=True)
+load_dotenv(ROOT.parent / ".env", override=False)
 PLATFORM = os.getenv("PLATFORM", "").strip().lower()
 DATABASE_PATH = Path(os.getenv("ADAPTER_DATABASE_PATH", ROOT / "adapter_posts.db"))
 if not DATABASE_PATH.is_absolute():
