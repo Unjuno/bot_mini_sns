@@ -88,7 +88,27 @@ export class DiscordAdapter {
 export class MastodonAdapter {
   constructor(private readonly baseUrl: string, private readonly token: string, private readonly http: HttpClient = fetch) { if (!baseUrl || !token) throw new Error("MASTODON_BASE_URL and MASTODON_ACCESS_TOKEN are required"); }
   parseEvent(payload: any): InboundEvent { const status = payload.status ?? payload; const user = status.account?.id ?? status.user_id; if (!user) throw new Error("Mastodon status has no account"); const media = status.media_attachments?.[0]; const type = media ? MastodonAdapter.contentType(media.type) : "text"; return { platform: "mastodon", user_id: String(user), content_type: type, text: status.content ?? status.text, media_url: media?.url, reply_to_id: status.id ? String(status.id) : undefined }; }
-  async sendReply(event: InboundEvent, reply: OutboundReply): Promise<void> { for (const message of reply.messages.slice(0, 5)) { if (message.type !== "text") throw new Error("Mastodon media upload is required before media replies"); const response = await this.http(`${this.baseUrl.replace(/\/$/, "")}/api/v1/statuses`, { method: "POST", headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" }, body: JSON.stringify({ status: message.text, in_reply_to_id: event.reply_to_id ?? null }) }); if (!response.ok) throw new Error(`Mastodon API error: ${response.status}`); } }
+  async sendReply(event: InboundEvent, reply: OutboundReply): Promise<void> {
+    for (const message of reply.messages.slice(0, 5)) {
+      let mediaIds: string[] | undefined;
+      if (message.type !== "text") {
+        if (!message.media_url) throw new Error(`Mastodon ${message.type} reply requires media_url`);
+        const media = await this.http(message.media_url, {});
+        if (!media.ok) throw new Error("Mastodon media download failed");
+        const form = new FormData();
+        form.append("file", new Blob([await media.arrayBuffer()], { type: media.headers.get("content-type") ?? "application/octet-stream" }), `reply.${message.type}`);
+        const upload = await this.http(`${this.baseUrl.replace(/\/$/, "")}/api/v2/media`, { method: "POST", headers: { Authorization: `Bearer ${this.token}` }, body: form });
+        if (!upload.ok) throw new Error(`Mastodon media API error: ${upload.status}`);
+        const uploaded = await upload.json() as { id?: string };
+        if (!uploaded.id) throw new Error("Mastodon media upload returned no ID");
+        mediaIds = [uploaded.id];
+      }
+      const body: Record<string, unknown> = { status: message.text ?? "", in_reply_to_id: event.reply_to_id ?? null };
+      if (mediaIds) body.media_ids = mediaIds;
+      const response = await this.http(`${this.baseUrl.replace(/\/$/, "")}/api/v1/statuses`, { method: "POST", headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!response.ok) throw new Error(`Mastodon API error: ${response.status}`);
+    }
+  }
   static contentType(type: string): InboundEvent["content_type"] { return (["image", "audio", "video", "file"] as string[]).includes(type) ? type as InboundEvent["content_type"] : "file"; }
 }
 
