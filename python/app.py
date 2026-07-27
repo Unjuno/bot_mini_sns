@@ -26,9 +26,14 @@ from linebot.models import (
 load_dotenv(override=True)
 
 ROOT = Path(__file__).resolve().parent
-CONFIG_PATH = Path(os.getenv("CONFIG_PATH", ROOT / "config.json"))
-DATABASE_PATH = Path(os.getenv("DATABASE_PATH", ROOT / "sns_bot.db"))
-MEDIA_DIR = Path(os.getenv("MEDIA_DIR", ROOT / "uploaded_media"))
+def project_path(value, default):
+    path = Path(value or default)
+    return path if path.is_absolute() else ROOT / path
+
+
+CONFIG_PATH = project_path(os.getenv("CONFIG_PATH"), ROOT / "config.json")
+DATABASE_PATH = project_path(os.getenv("DATABASE_PATH"), ROOT / "sns_bot.db")
+MEDIA_DIR = project_path(os.getenv("MEDIA_DIR"), ROOT / "uploaded_media")
 
 
 def load_config():

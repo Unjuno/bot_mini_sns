@@ -27,7 +27,7 @@ Python版は各サービスの受信形式と送信APIをアダプターで吸�
 
 ## Python版を起動する
 
-PowerShellの場合：
+PowerShellの場合（ルートから実行）：
 
 ```powershell
 cd python
@@ -36,6 +36,8 @@ python -m venv .venv
 pip install -r requirements.txt
 python app.py
 ```
+
+`python`ディレクトリから実行する場合は、`pip install -r requirements.txt`で同じ依存関係を導入できます。
 
 起動確認：
 
