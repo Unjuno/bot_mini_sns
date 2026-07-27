@@ -25,7 +25,7 @@
 
 ## 共通プラットフォームWebhook
 
-`python/adapter_app.py`を使う場合は、`.env`に次を設定します。
+`python/adapter_app.py`を使う場合は、`.env`に次を設定します。相対パスは`python`ディレクトリを基準に解決されます。
 
 ```dotenv
 PLATFORM=slack
@@ -35,6 +35,8 @@ PORT=5000
 ```
 
 `PLATFORM`は`docs/platforms/README.md`に記載された17プラットフォームのいずれかです。実サービス接続に必要な環境変数も同じ一覧に記載しています。
+
+Renderなどでこの経路を公開する場合のStart Commandは`gunicorn adapter_app:app`です。LINE専用の`app.py`を使う場合は`gunicorn app:app`にします。`.env.example`はリポジトリルートに1つだけあり、`python`から起動しても同じファイルを読み込みます。
 
 PHP版は`PHP_POSTS_FILE`（既定値：`php/bin/posts.json`）へ投稿履歴を保存します。公開ホスティングでは、このパスに書き込み権限があることを確認してください。
 

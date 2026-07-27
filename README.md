@@ -23,7 +23,7 @@ Pythonの`python/platforms/`に、次の17種類のアダプターを登録し�
 
 LINE、Telegram、Discord、Zulip、Matrix、Slack、Google Chat、Viber、Mastodon、Misskey、Bluesky、WhatsApp、Instagram、Microsoft Teams、KakaoTalk、Twitch、Reddit
 
-Python版は各サービスの受信形式と送信APIをアダプターで吸収します。PHP・TypeScript・Go版は、同じ共通JSONイベントを受けるWebhookサーバーとして利用できます。
+Python版には各サービスの受信形式と送信APIを扱うアダプターがあります。実サービスで利用するには、各サービス側のBot登録・Webhook設定・認証情報が別途必要です。PHP・TypeScript・Go版は、各サービスのWebhookを共通JSONへ変換した後段として利用します。
 
 ## Python版を起動する
 
@@ -88,6 +88,14 @@ python adapter_app.py
 ```
 
 `POST http://127.0.0.1:5000/webhook`へ、プラットフォーム固有形式ではなく共通イベントJSONを送信します。実サービスで使う場合は`OFFLINE=false`にし、`docs/platforms/README.md`の必須設定を登録してください。投稿は`ADAPTER_DATABASE_PATH`のSQLiteへ保存されます。
+
+他プラットフォームのネイティブWebhookをPythonで受ける場合は、RenderなどのRoot Directoryを`python`にし、Start Commandを次のようにします。`PLATFORM`と対象サービスの環境変数も登録してください。
+
+```text
+gunicorn adapter_app:app
+```
+
+LINEの署名検証とLINE固有の画像・音声・動画・ファイル処理は`gunicorn app:app`で起動する`app.py`が担当します。`adapter_app.py`は共通アダプター経路です。
 
 ## 他言語版
 
